@@ -1,0 +1,45 @@
+name: PlayerMarket
+version: 1.0
+main: org.playermarket.PlayerMarket
+api-version: '1.21'
+description: 玩家交易市场插件
+author: 你的名字
+
+# ⚠️ 依赖配置 - 解决Vault冲突的关键
+depend: [Vault]
+softdepend: [Essentials, EssentialsX]
+
+# 命令配置
+commands:
+  playermarket:
+    description: 打开玩家市场
+    aliases: [market, pm, plm]
+    usage: /<command> [help|balance|debug|reload]
+    permission: playermarket.use
+    permission-message: "§c你没有权限使用此命令"
+  
+  manuela:
+    description: 上架手中的物品到市场
+    usage: /manuela <数量> <单价>
+    permission: playermarket.use
+    permission-message: "§c你没有权限使用此命令"
+  
+  pur:
+    description: 创建收购订单
+    usage: /pur <数量> <单价>
+    permission: playermarket.use
+    permission-message: "§c你没有权限使用此命令"
+
+# 权限配置
+permissions:
+  playermarket.use:
+    description: 允许使用玩家市场
+    default: true
+  
+  playermarket.admin:
+    description: 允许使用管理员命令
+    default: op
+  
+  playermarket.bypass:
+    description: 绕过市场限制
+    default: op
