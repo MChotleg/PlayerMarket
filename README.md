@@ -100,7 +100,7 @@
 - Lightweight design: Efficient data structure and query optimization
 
 
-### �🛠️ 配置与权限（Configuration & Permissions）
+### 🛠️配置与权限（Configuration & Permissions）
 
 **中文**：
 - 配置文件：`plugins/PlayerMarket/config.yml`
