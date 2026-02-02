@@ -85,7 +85,7 @@
 - Admin commands: `/pm reload` (reload config), `/pm defaultlang <zh_CN|en_US>` (set default language)
 
 
-### �️ 数据库支持（Database Support）
+### 🗃️数据库支持（Database Support）
 
 **中文**：
 - 内置SQLite数据库：无需额外配置，自动管理
