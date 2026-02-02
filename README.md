@@ -85,7 +85,7 @@
 - Admin commands: `/pm reload` (reload config), `/pm defaultlang <zh_CN|en_US>` (set default language)
 
 
-### �️ 数据库支持（Database Support）
+### 🗃️ 数据库支持（Database Support）
 
 **中文**：
 - 内置SQLite数据库：无需额外配置，自动管理
@@ -100,7 +100,7 @@
 - Lightweight design: Efficient data structure and query optimization
 
 
-### �🛠️ 配置与权限（Configuration & Permissions）
+### 🛠️ 配置与权限（Configuration & Permissions）
 
 **中文**：
 - 配置文件：`plugins/PlayerMarket/config.yml`
