@@ -10,6 +10,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.playermarket.PlayerMarket;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.model.WarehouseItem;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,7 +33,7 @@ public class WarehouseGUI implements InventoryHolder {
     public WarehouseGUI(PlayerMarket plugin, Player player) {
         this.plugin = plugin;
         this.player = player;
-        this.title = "§6我的仓库";
+        this.title = I18n.get(player, "market.warehouse");
         this.inventory = Bukkit.createInventory(this, 54, title);
         
         initializeGUI();
@@ -69,10 +70,10 @@ public class WarehouseGUI implements InventoryHolder {
                     if (meta != null) {
                         List<String> lore = new ArrayList<>();
                         lore.add("");
-                        lore.add("§7数量: §e" + item.getAmount());
+                        lore.add(I18n.get(player, "warehouse.amount", item.getAmount()));
                         lore.add("");
-                        lore.add("§e点击取出物品");
-                        lore.add("§7仓库物品ID: §e" + item.getId());
+                        lore.add(I18n.get(player, "gui.warehouse.withdraw"));
+                        lore.add(I18n.get(player, "warehouse.id", item.getId()));
                         meta.setLore(lore);
                         itemStack.setItemMeta(meta);
                     }
@@ -108,15 +109,15 @@ public class WarehouseGUI implements InventoryHolder {
         int totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
         
         if (currentPage > 1) {
-            ItemStack prevButton = createPageButton("§c§l上一页", Material.ARROW, "§7点击返回第 " + (currentPage - 1) + " 页");
+            ItemStack prevButton = createPageButton(I18n.get(player, "gui.page.previous"), Material.ARROW, I18n.get(player, "gui.page.previous.lore", currentPage - 1));
             inventory.setItem(45, prevButton);
         }
         
-        ItemStack pageIndicator = createPageIndicator(currentPage, totalPages, totalItems);
+        ItemStack pageIndicator = createPageIndicator(player, currentPage, totalPages, totalItems);
         inventory.setItem(49, pageIndicator);
         
         if (currentPage < totalPages) {
-            ItemStack nextButton = createPageButton("§a§l下一页", Material.ARROW, "§7点击前往第 " + (currentPage + 1) + " 页");
+            ItemStack nextButton = createPageButton(I18n.get(player, "gui.page.next"), Material.ARROW, I18n.get(player, "gui.page.next.lore", currentPage + 1));
             inventory.setItem(53, nextButton);
         }
     }
@@ -125,10 +126,10 @@ public class WarehouseGUI implements InventoryHolder {
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
         if (backMeta != null) {
-            backMeta.setDisplayName("§c§l返回");
+            backMeta.setDisplayName(I18n.get(player, "gui.back"));
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7点击返回主菜单");
+            lore.add(I18n.get(player, "gui.back.to.main"));
             backMeta.setLore(lore);
             backButton.setItemMeta(backMeta);
         }
@@ -148,17 +149,17 @@ public class WarehouseGUI implements InventoryHolder {
         return button;
     }
     
-    private ItemStack createPageIndicator(int currentPage, int totalPages, int totalItems) {
+    private ItemStack createPageIndicator(Player player, int currentPage, int totalPages, int totalItems) {
         ItemStack indicator = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = indicator.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName("§6§l第 " + currentPage + " 页");
+            meta.setDisplayName(I18n.get(player, "gui.page.indicator.title", currentPage));
             List<String> lore = new ArrayList<>();
-            lore.add("§7共 " + totalPages + " 页");
+            lore.add(I18n.get(player, "gui.page.indicator.total", totalPages));
             lore.add("");
-            lore.add("§7仓库物品: §e" + totalItems + " 个");
+            lore.add(I18n.get(player, "gui.page.indicator.warehouse", totalItems));
             lore.add("");
-            lore.add("§7点击刷新");
+            lore.add(I18n.get(player, "gui.page.indicator.refresh"));
             meta.setLore(lore);
             indicator.setItemMeta(meta);
         }

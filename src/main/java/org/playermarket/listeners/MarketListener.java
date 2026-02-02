@@ -29,6 +29,7 @@ import org.playermarket.model.WarehouseItem;
 import org.playermarket.model.BuyOrder;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.economy.EconomyManager;
+import org.playermarket.utils.I18n;
 import java.util.UUID;
 import java.util.Map;
 import java.util.HashMap;
@@ -84,12 +85,20 @@ public class MarketListener implements Listener {
                 continue;
             }
             String plain = org.bukkit.ChatColor.stripColor(line).trim();
+            String idStr = null;
+            
             if (plain.startsWith("商品ID:")) {
-                String idStr = plain.substring("商品ID:".length()).trim();
+                idStr = plain.substring("商品ID:".length()).trim();
+            } else if (plain.startsWith("物品ID:")) {
+                idStr = plain.substring("物品ID:".length()).trim();
+            } else if (plain.startsWith("Item ID:")) {
+                idStr = plain.substring("Item ID:".length()).trim();
+            }
+            
+            if (idStr != null) {
                 try {
                     return Integer.parseInt(idStr);
                 } catch (NumberFormatException ignored) {
-                    return null;
                 }
             }
         }
@@ -115,12 +124,57 @@ public class MarketListener implements Listener {
                 continue;
             }
             String plain = org.bukkit.ChatColor.stripColor(line).trim();
+            String idStr = null;
+
             if (plain.startsWith("仓库物品ID:")) {
-                String idStr = plain.substring("仓库物品ID:".length()).trim();
+                idStr = plain.substring("仓库物品ID:".length()).trim();
+            } else if (plain.startsWith("Item ID:")) {
+                idStr = plain.substring("Item ID:".length()).trim();
+            }
+            
+            if (idStr != null) {
                 try {
                     return Integer.parseInt(idStr);
                 } catch (NumberFormatException ignored) {
-                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private Integer extractBuyOrderId(ItemStack itemStack) {
+        if (itemStack == null) {
+            return null;
+        }
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta == null) {
+            return null;
+        }
+        List<String> lore = meta.getLore();
+        if (lore == null) {
+            return null;
+        }
+
+        for (String line : lore) {
+            if (line == null) {
+                continue;
+            }
+            String plain = org.bukkit.ChatColor.stripColor(line).trim();
+            String idStr = null;
+            
+            if (plain.startsWith("收购订单ID:")) {
+                idStr = plain.substring("收购订单ID:".length()).trim();
+            } else if (plain.startsWith("订单ID:")) {
+                idStr = plain.substring("订单ID:".length()).trim();
+            } else if (plain.startsWith("Order ID:")) {
+                idStr = plain.substring("Order ID:".length()).trim();
+            }
+            
+            if (idStr != null) {
+                try {
+                    return Integer.parseInt(idStr);
+                } catch (NumberFormatException ignored) {
                 }
             }
         }
@@ -143,7 +197,11 @@ public class MarketListener implements Listener {
         
         Player player = (Player) event.getWhoClicked();
         Inventory inventory = event.getInventory();
-        
+
+        if (inventory == null || inventory.getHolder() == null) {
+            return;
+        }
+
         if (isCustomGUI(inventory)) {
             event.setCancelled(true);
         }
@@ -223,17 +281,32 @@ public class MarketListener implements Listener {
                 if (clickedItem == null || clickedItem.getType().isAir()) {
                     return;
                 }
-                
-                // 获取点击的商品
+
+                MarketItem item = null;
+
                 List<MarketItem> items = marketItemsGUI.getMarketItems();
                 int index = (marketItemsGUI.getCurrentPage() - 1) * 45 + slot;
-                if (index >= 0 && index < items.size()) {
-                    MarketItem item = items.get(index);
-                    player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
-                    ItemDetailGUI detailGUI = new ItemDetailGUI(plugin, item);
-                    playerDetailGUIs.put(player.getUniqueId(), detailGUI);
-                    detailGUI.open(player);
+                if (items != null && index >= 0 && index < items.size()) {
+                    item = items.get(index);
                 }
+
+                if (item == null) {
+                    Integer itemId = extractMarketItemId(clickedItem);
+                    if (itemId != null) {
+                        item = dbManager.getItemById(itemId);
+                    }
+                }
+
+                if (item == null || item.isSold()) {
+                    player.sendMessage(I18n.get(player, "error.item.notfound"));
+                    marketItemsGUI.refresh();
+                    return;
+                }
+
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+                ItemDetailGUI detailGUI = new ItemDetailGUI(plugin, item);
+                playerDetailGUIs.put(player.getUniqueId(), detailGUI);
+                detailGUI.open(player);
             }
         }
         
@@ -281,18 +354,38 @@ public class MarketListener implements Listener {
                 if (clickedItem == null || clickedItem.getType().isAir()) {
                     return;
                 }
-                
-                // 获取点击的收购订单
+
+                BuyOrder order = null;
+
                 List<BuyOrder> orders = buyOrderGUI.getBuyOrders();
                 int index = (buyOrderGUI.getCurrentPage() - 1) * 28 + slot;
-                if (index >= 0 && index < orders.size()) {
-                    BuyOrder order = orders.get(index);
-                    player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+                if (orders != null && index >= 0 && index < orders.size()) {
+                    order = orders.get(index);
+                }
 
-                    // 查看详情 / 出售
+                if (order == null) {
+                    Integer orderId = extractBuyOrderId(clickedItem);
+                    if (orderId != null) {
+                        order = dbManager.getBuyOrderById(orderId);
+                    }
+                }
+
+                if (order == null || order.isFulfilled()) {
+                    player.sendMessage(I18n.get(player, "error.item.notfound"));
+                    buyOrderGUI.refresh();
+                    return;
+                }
+
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+
+                try {
                     BuyOrderDetailGUI detailGUI = new BuyOrderDetailGUI(plugin, order, player);
                     playerBuyOrderDetailGUIs.put(player.getUniqueId(), detailGUI);
                     detailGUI.open();
+                } catch (Exception e) {
+                    plugin.getLogger().severe(I18n.get("marketlistener.log.open_detail_failed", e.getMessage()));
+                    e.printStackTrace();
+                    player.sendMessage(I18n.get(player, "marketlistener.open_detail_failed", e.getMessage()));
                 }
             }
         }
@@ -351,7 +444,7 @@ public class MarketListener implements Listener {
             if (slot == 49) {
                 BuyOrder order = detailGUI.getBuyOrder();
                 if (order == null || order.isFulfilled() || order.getRemainingAmount() <= 0) {
-                    player.sendMessage("§c该收购订单已完成或不存在！");
+                    player.sendMessage(I18n.get(player, "marketlistener.order_completed"));
                     detailGUI.refresh();
                     return;
                 }
@@ -359,31 +452,30 @@ public class MarketListener implements Listener {
                 int sellAmount = BuyOrderDetailGUI.getPlayerSellAmounts().getOrDefault(player.getUniqueId(), 1);
                 int max = Math.min(order.getRemainingAmount(), countPlayerItemAmount(player, order.getItemStack()));
                 if (max <= 0) {
-                    player.sendMessage("§c你的物品数量不足，无法出售！");
-                    return;
-                }
+                        player.sendMessage(I18n.get(player, "trade.insufficient.stock"));
+                        return;
+                    }
 
-                sellAmount = Math.min(sellAmount, max);
-                if (sellAmount <= 0) {
-                    player.sendMessage("§c出售数量无效！");
-                    return;
-                }
+                    sellAmount = Math.min(sellAmount, max);
+                    if (sellAmount <= 0) {
+                        player.sendMessage(I18n.get(player, "marketlistener.invalid_sell_amount"));
+                        return;
+                    }
 
-                // 检查买家余额
                 double requiredAmount = sellAmount * order.getUnitPrice();
                 double buyerBalance = economyManager.getBalance(order.getBuyerUuid());
                 if (buyerBalance < requiredAmount) {
                     player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                    player.sendMessage("§c收购方余额不足，无法完成交易！");
-                    player.sendMessage("§7需要: §e" + economyManager.format(requiredAmount));
-                    player.sendMessage("§7买家余额: §e" + economyManager.format(buyerBalance));
+                    player.sendMessage(I18n.get(player, "error.economy"));
+                    player.sendMessage(I18n.get(player, "marketlistener.buyer_balance_needed", economyManager.format(requiredAmount)));
+                    player.sendMessage(I18n.get(player, "marketlistener.buyer_balance", economyManager.format(buyerBalance)));
                     return;
                 }
 
                 ItemStack targetItem = order.getItemStack();
                 boolean removed = removeItemsFromInventory(player, targetItem, sellAmount);
                 if (!removed) {
-                    player.sendMessage("§c扣除物品失败，请稍后重试！");
+                    player.sendMessage(I18n.get(player, "marketlistener.remove_item_failed"));
                     return;
                 }
 
@@ -393,14 +485,13 @@ public class MarketListener implements Listener {
                     rollback.setAmount(sellAmount);
                     player.getInventory().addItem(rollback);
                     player.updateInventory();
-                    player.sendMessage("§c出售失败，订单可能已被他人更新！");
+                    player.sendMessage(I18n.get(player, "marketlistener.sell_failed"));
                     detailGUI.refresh();
                     return;
                 }
 
                 double income = sellAmount * order.getUnitPrice();
                 
-                // 扣除收购方的钱
                 boolean withdrawn = economyManager.withdraw(order.getBuyerUuid(), income);
                 if (!withdrawn) {
                     ItemStack rollback = targetItem.clone();
@@ -408,7 +499,7 @@ public class MarketListener implements Listener {
                     player.getInventory().addItem(rollback);
                     player.updateInventory();
                     player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                    player.sendMessage("§c收购方余额不足，交易失败！");
+                    player.sendMessage(I18n.get(player, "marketlistener.buyer_insufficient"));
                     detailGUI.refresh();
                     return;
                 }
@@ -423,25 +514,30 @@ public class MarketListener implements Listener {
                 final UUID buyerUuid = order.getBuyerUuid();
                 final String buyerName = order.getBuyerName();
 
-                player.sendMessage("§a=== 出售成功 ===");
-                player.sendMessage("§7物品: §e" + itemName + " x" + soldAmount);
-                player.sendMessage("§7收入: §e" + economyManager.format(soldIncome));
+                player.sendMessage(I18n.get(player, "trade.sell.success"));
+                player.sendMessage(I18n.get(player, "marketlistener.item_sold", itemName + " x" + soldAmount));
+                player.sendMessage(I18n.get(player, "trade.sell.received", economyManager.format(soldIncome)));
 
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                     String notificationMessage = "§a收购订单成交 §7| §e" + itemName + " x" + soldAmount +
                             " §7| §e支付: " + economyManager.format(soldIncome) + " §7| 卖家: " + sellerName;
                     String notificationData = itemName + "," + soldAmount + "," + soldIncome + "," + sellerName;
-                    dbManager.addNotification(buyerUuid, buyerName, "buyorder", notificationMessage, notificationData);
+                    int notificationId = dbManager.addNotification(buyerUuid, buyerName, "buyorder", notificationMessage, notificationData);
 
                     Player buyer = plugin.getServer().getPlayer(buyerUuid);
                     if (buyer != null && buyer.isOnline()) {
                         Bukkit.getScheduler().runTask(plugin, () -> {
                             buyer.playSound(buyer.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                            buyer.sendMessage("§a=== 收购订单成交 ===");
-                            buyer.sendMessage("§7物品: §e" + itemName + " x" + soldAmount);
-                            buyer.sendMessage("§7卖家: §e" + sellerName);
-                            buyer.sendMessage("§7支出: §e" + economyManager.format(soldIncome));
+                            buyer.sendMessage(I18n.get(buyer, "marketlistener.buyorder_completed"));
+                            buyer.sendMessage(I18n.get(buyer, "marketlistener.buyorder_item", itemName + " x" + soldAmount));
+                            buyer.sendMessage(I18n.get(buyer, "marketlistener.buyorder_seller", sellerName));
+                            buyer.sendMessage(I18n.get(buyer, "marketlistener.buyorder_paid", economyManager.format(soldIncome)));
                         });
+                        
+                        // 买家在线，立即标记通知为已读
+                        if (notificationId > 0) {
+                            dbManager.markNotificationAsRead(notificationId);
+                        }
                     }
                 });
 
@@ -512,12 +608,12 @@ public class MarketListener implements Listener {
                     // 重新从数据库获取最新订单状态
                     BuyOrder latestOrder = dbManager.getBuyOrderById(order.getId());
                     if (latestOrder == null) {
-                        player.sendMessage("§c订单不存在！");
+                        player.sendMessage(I18n.get(player, "marketlistener.order_not_exist"));
                         myBuyOrdersGUI.refresh();
                         return;
                     }
                     
-                    plugin.getLogger().info("订单状态检查 - ID: " + latestOrder.getId() + ", fulfilled: " + latestOrder.isFulfilled() + ", amount: " + latestOrder.getAmount() + ", remaining: " + latestOrder.getRemainingAmount());
+                    plugin.getLogger().info(I18n.get("marketlistener.log.order_check", latestOrder.getId(), latestOrder.isFulfilled(), latestOrder.getAmount(), latestOrder.getRemainingAmount()));
                     
                     int acquiredAmount = latestOrder.getAmount() - latestOrder.getRemainingAmount();
                     boolean isPartiallyFulfilled = acquiredAmount > 0 && !latestOrder.isFulfilled();
@@ -527,14 +623,14 @@ public class MarketListener implements Listener {
                             boolean cancelled = dbManager.cancelBuyOrder(latestOrder.getId(), player.getUniqueId());
                             if (cancelled) {
                                 player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                                player.sendMessage("§a收购订单已取消！");
+                                player.sendMessage(I18n.get(player, "marketlistener.order_cancelled"));
                                 myBuyOrdersGUI.refresh();
                             } else {
-                                player.sendMessage("§c取消收购订单失败！");
+                                player.sendMessage(I18n.get(player, "marketlistener.cancel_failed"));
                             }
                         } else {
                             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                            player.sendMessage("§c已完成的订单无法取消！");
+                            player.sendMessage(I18n.get(player, "marketlistener.order_cant_cancel"));
                         }
                     } else if (event.getClick().isLeftClick()) {
                         if (latestOrder.isFulfilled()) {
@@ -556,22 +652,21 @@ public class MarketListener implements Listener {
                                 if (added) {
                                     dbManager.deleteCompletedBuyOrder(latestOrder.getId(), player.getUniqueId());
                                     player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                                    player.sendMessage("§a收购的物品已转移到仓库！");
+                                    player.sendMessage(I18n.get(player, "marketlistener.items_transferred"));
                                     myBuyOrdersGUI.refresh();
                                 } else {
-                                    player.sendMessage("§c物品转移到仓库失败！");
+                                    player.sendMessage(I18n.get(player, "marketlistener.transfer_failed"));
                                 }
                             } else {
                                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                                player.sendMessage("§c该订单没有收购到任何物品！");
+                                player.sendMessage(I18n.get(player, "marketlistener.no_items"));
                             }
                         } else if (isPartiallyFulfilled) {
-                            // 部分完成状态：转移已收购的物品到仓库（提货后要把订单的amount同步为remaining_amount，避免重复提货）
                             if (acquiredAmount > 0) {
                                 boolean claimed = dbManager.claimBuyOrderAcquiredItems(latestOrder.getId(), player.getUniqueId(), acquiredAmount);
                                 if (!claimed) {
                                     player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                                    player.sendMessage("§c没有可提取的物品（可能已提取或订单状态已变化）！");
+                                    player.sendMessage(I18n.get(player, "marketlistener.no_withdrawable"));
                                     myBuyOrdersGUI.refresh();
                                     return;
                                 }
@@ -591,15 +686,15 @@ public class MarketListener implements Listener {
                                 boolean added = dbManager.addWarehouseItem(warehouseItem);
                                 if (added) {
                                     player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                                    player.sendMessage("§a已收购的物品已转移到仓库！");
+                                    player.sendMessage(I18n.get(player, "marketlistener.items_transferred"));
                                     myBuyOrdersGUI.refresh();
                                 } else {
-                                    player.sendMessage("§c物品转移到仓库失败！");
+                                    player.sendMessage(I18n.get(player, "marketlistener.transfer_failed"));
                                     myBuyOrdersGUI.refresh();
                                 }
                             } else {
                                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                                player.sendMessage("§c该订单没有收购到任何物品！");
+                                player.sendMessage(I18n.get(player, "marketlistener.no_items"));
                             }
                         } else {
                             // 未完成状态：修改收购数量
@@ -680,15 +775,15 @@ public class MarketListener implements Listener {
 
                 Integer itemId = extractMarketItemId(clickedItem);
                 if (itemId == null) {
-                    player.sendMessage("§c商品不存在！");
-                    return;
-                }
+                        player.sendMessage(I18n.get(player, "error.item.notfound"));
+                        return;
+                    }
 
-                MarketItem item = dbManager.getItemById(itemId);
-                if (item == null || item.isSold() || !player.getUniqueId().equals(item.getSellerUuid())) {
-                    player.sendMessage("§c商品不存在！");
-                    return;
-                }
+                    MarketItem item = dbManager.getItemById(itemId);
+                    if (item == null || item.isSold() || !player.getUniqueId().equals(item.getSellerUuid())) {
+                        player.sendMessage(I18n.get(player, "error.item.notfound"));
+                        return;
+                    }
 
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                 openDelistingDetailGUI(player, item);
@@ -767,13 +862,13 @@ public class MarketListener implements Listener {
 
                 Integer itemId = extractWarehouseItemId(clickedItem);
                 if (itemId == null) {
-                    player.sendMessage("§c物品不存在！");
+                    player.sendMessage(I18n.get(player, "error.item.notfound"));
                     return;
                 }
 
                 WarehouseItem item = dbManager.getWarehouseItemById(itemId);
                 if (item == null || !player.getUniqueId().equals(item.getOwnerUuid())) {
-                    player.sendMessage("§c物品不存在！");
+                    player.sendMessage(I18n.get(player, "error.item.notfound"));
                     return;
                 }
 
@@ -831,9 +926,8 @@ public class MarketListener implements Listener {
                 boolean updated = dbManager.updateBuyOrderAmount(buyOrder.getId(), player.getUniqueId(), newAmount);
                 if (updated) {
                     player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.0f);
-                    player.sendMessage("§a收购数量已更新！");
+                    player.sendMessage(I18n.get(player, "marketlistener.modify_success"));
                     
-                    // 关闭修改界面，返回我的收购界面
                     ModifyBuyOrderGUI storedGUI = playerModifyBuyOrderGUIs.remove(player.getUniqueId());
                     if (storedGUI != null) {
                         storedGUI.cleanup(player);
@@ -848,7 +942,7 @@ public class MarketListener implements Listener {
                     }
                 } else {
                     player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                    player.sendMessage("§c更新失败！订单可能已被他人修改");
+                    player.sendMessage(I18n.get(player, "marketlistener.modify_failed"));
                 }
                 return;
             }
@@ -940,33 +1034,29 @@ public class MarketListener implements Listener {
     
     private void purchaseItem(Player player, MarketItem item, int purchaseAmount) {
         if (item == null) {
-            player.sendMessage("§c商品不存在！");
+            player.sendMessage(I18n.get(player, "marketlistener.item_not_exist"));
             return;
         }
         
-        // 检查商品是否已被购买
         if (item.isSold()) {
-            player.sendMessage("§c该商品已被购买！");
+            player.sendMessage(I18n.get(player, "marketlistener.item_already_sold"));
             return;
         }
         
-        // 检查购买数量是否有效
         if (purchaseAmount <= 0 || purchaseAmount > item.getAmount()) {
-            player.sendMessage("§c购买数量无效！");
+            player.sendMessage(I18n.get(player, "marketlistener.invalid_purchase_amount"));
             return;
         }
         
-        // 计算单价和总价
         double unitPrice = item.getPrice() / item.getAmount();
         double totalPrice = unitPrice * purchaseAmount;
         
-        // 检查玩家余额
         double balance = economyManager.getBalance(player);
         
         if (balance < totalPrice) {
-            player.sendMessage("§c余额不足！");
-            player.sendMessage("§7需要: §e" + economyManager.format(totalPrice));
-            player.sendMessage("§7拥有: §e" + economyManager.format(balance));
+            player.sendMessage(I18n.get(player, "marketlistener.insufficient_funds"));
+            player.sendMessage(I18n.get(player, "marketlistener.funds_needed", economyManager.format(totalPrice)));
+            player.sendMessage(I18n.get(player, "marketlistener.funds_have", economyManager.format(balance)));
             return;
         }
         
@@ -982,17 +1072,7 @@ public class MarketListener implements Listener {
             economyManager.withdraw(player, totalPrice);
             
             // 获取物品名称（优先使用自定义名称）
-            final String itemName;
-            if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-                itemName = itemStack.getItemMeta().getDisplayName();
-            } else {
-                String tempName = itemStack.getI18NDisplayName();
-                if (tempName == null) {
-                    itemName = itemStack.getType().name();
-                } else {
-                    itemName = tempName;
-                }
-            }
+            final String itemName = I18n.getItemDisplayName(itemStack);
             
             // 给卖家加钱（无论卖家是否在线）
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -1004,15 +1084,20 @@ public class MarketListener implements Listener {
                 // 添加通知到数据库
                 String notificationMessage = "§a商品已售出 §7| §e" + itemName + " x" + purchaseAmount + " §7| §e" + economyManager.format(totalPrice);
                 String notificationData = itemName + "," + purchaseAmount + "," + totalPrice;
-                dbManager.addNotification(item.getSellerUuid(), item.getSellerName(), "sale", notificationMessage, notificationData);
+                int notificationId = dbManager.addNotification(item.getSellerUuid(), item.getSellerName(), "sale", notificationMessage, notificationData);
                 
                 // 如果卖家在线，发送通知消息和播放音效
                 if (seller != null && seller.isOnline()) {
                     seller.playSound(seller.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                    seller.sendMessage("§a=== 商品已售出 ===");
-                    seller.sendMessage("§7买家: §e" + player.getName());
-                    seller.sendMessage("§7数量: §e" + purchaseAmount + " 个");
-                    seller.sendMessage("§7收入: §e" + economyManager.format(totalPrice));
+                    seller.sendMessage(I18n.get(seller, "marketlistener.sold.title"));
+                    seller.sendMessage(I18n.get(seller, "marketlistener.sold.buyer", player.getName()));
+                    seller.sendMessage(I18n.get(seller, "marketlistener.sold.amount", purchaseAmount));
+                    seller.sendMessage(I18n.get(seller, "marketlistener.sold.income", economyManager.format(totalPrice)));
+                    
+                    // 卖家在线，立即标记通知为已读
+                    if (notificationId > 0) {
+                        dbManager.markNotificationAsRead(notificationId);
+                    }
                 }
             });
             
@@ -1029,17 +1114,15 @@ public class MarketListener implements Listener {
             boolean added = dbManager.addWarehouseItem(warehouseItem);
             if (!added) {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                player.sendMessage("§c购买成功，但转移到仓库失败！请联系管理员");
+                player.sendMessage(I18n.get(player, "marketlistener.purchase_failed"));
             }
 
-            // 发送成功消息
-            player.sendMessage("§a=== 购买成功 ===");
-            player.sendMessage("§7商品: §e" + itemName + " x" + purchaseAmount);
-            player.sendMessage("§7单价: §e" + economyManager.format(unitPrice) + " / 个");
-            player.sendMessage("§7总价: §e" + economyManager.format(totalPrice));
-            player.sendMessage("§7已转移到仓库");
+            player.sendMessage(I18n.get(player, "marketlistener.purchase_success"));
+            player.sendMessage(I18n.get(player, "marketlistener.purchase_item", itemName + " x" + purchaseAmount));
+            player.sendMessage(I18n.get(player, "marketlistener.purchase_unit_price", economyManager.format(unitPrice)));
+            player.sendMessage(I18n.get(player, "marketlistener.purchase_total", economyManager.format(totalPrice)));
+            player.sendMessage(I18n.get(player, "marketlistener.purchase_transferred"));
             
-            // 返回上一页（购买市场）
             ItemDetailGUI detailGUI = playerDetailGUIs.remove(player.getUniqueId());
             if (detailGUI != null) {
                 detailGUI.cleanup(player);
@@ -1053,10 +1136,10 @@ public class MarketListener implements Listener {
                 openMarketItemsGUI(player);
             }
             
-            plugin.getLogger().info(player.getName() + " 购买了商品: " + itemStack.getType().name() + " x" + purchaseAmount);
+            plugin.getLogger().info(I18n.get("marketlistener.log.purchase", player.getName(), I18n.stripColorCodes(I18n.getItemDisplayName(itemStack)), purchaseAmount));
         } else {
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-            player.sendMessage("§c购买失败！商品可能已被他人购买");
+            player.sendMessage(I18n.get(player, "marketlistener.purchase_failed2"));
         }
     }
     
@@ -1110,7 +1193,7 @@ public class MarketListener implements Listener {
 
     private void performSellToBuyOrder(Player seller, BuyOrderGUI buyOrderGUI, BuyOrder order) {
         if (order == null) {
-            seller.sendMessage("§c收购订单不存在！");
+            seller.sendMessage(I18n.get(seller, "marketlistener.order_not_exist"));
             return;
         }
 
@@ -1159,12 +1242,7 @@ public class MarketListener implements Listener {
     }
 
     private String getItemDisplayName(ItemStack itemStack) {
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-            return itemStack.getItemMeta().getDisplayName();
-        }
-
-        String i18nName = itemStack.getI18NDisplayName();
-        return i18nName != null ? i18nName : itemStack.getType().name();
+        return I18n.getItemDisplayName(itemStack);
     }
     
     private void performDelistItem(Player player, MarketItem item, int delistAmount) {
@@ -1220,9 +1298,9 @@ public class MarketListener implements Listener {
             
             if (successCount == totalGroups) {
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.0f);
-                player.sendMessage("§a=== 下架成功 ===");
-                player.sendMessage("§7商品: §e" + itemStack.getType().name() + " x" + delistAmount);
-                player.sendMessage("§7已拆分为 §e" + totalGroups + " §7组存入仓库");
+                player.sendMessage(I18n.get(player, "marketlistener.delist_success"));
+                player.sendMessage(I18n.get(player, "marketlistener.delist_item", getItemDisplayName(itemStack) + " x" + delistAmount));
+                player.sendMessage(I18n.get(player, "marketlistener.delist_groups", totalGroups));
                 
                 DelistingDetailGUI delistingGUI = playerDelistingGUIs.remove(player.getUniqueId());
                 if (delistingGUI != null) {
@@ -1238,11 +1316,11 @@ public class MarketListener implements Listener {
                 }
             } else {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-                player.sendMessage("§c下架部分成功！成功存入 §e" + successCount + " / " + totalGroups + " §7组");
+                player.sendMessage(I18n.get(player, "marketlistener.delist_partial", successCount, totalGroups));
             }
         } else {
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-            player.sendMessage("§c下架失败！商品可能已被购买或不存在");
+            player.sendMessage(I18n.get(player, "marketlistener.delist_failed"));
         }
     }
     
@@ -1254,7 +1332,7 @@ public class MarketListener implements Listener {
         int canFit = countCanFit(player, sample, maxStackSize);
         if (canFit <= 0) {
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-            player.sendMessage("§c背包已满！请清理后再取出");
+            player.sendMessage(I18n.get(player, "marketlistener.inventory_full"));
             return;
         }
 
@@ -1289,7 +1367,7 @@ public class MarketListener implements Listener {
             }
             player.updateInventory();
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-            player.sendMessage("§c背包空间不足，无法取出");
+            player.sendMessage(I18n.get(player, "marketlistener.withdraw_insufficient"));
             return;
         }
 
@@ -1306,24 +1384,24 @@ public class MarketListener implements Listener {
             }
             player.updateInventory();
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
-            player.sendMessage("§c取出失败！数据库错误");
+            player.sendMessage(I18n.get(player, "marketlistener.withdraw_failed"));
             return;
         }
 
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.0f);
         if (givenAmount >= totalAmount) {
-            player.sendMessage("§a=== 取出成功 ===");
-            player.sendMessage("§7物品: §e" + sample.getType().name() + " x" + totalAmount);
+            player.sendMessage(I18n.get(player, "marketlistener.withdraw_success"));
+            player.sendMessage(I18n.get(player, "marketlistener.withdraw_item", getItemDisplayName(sample) + " x" + totalAmount));
             Inventory top = player.getOpenInventory().getTopInventory();
             if (top != null) {
                 top.setItem(clickedSlot, new ItemStack(org.bukkit.Material.AIR));
             }
         } else {
             int left = totalAmount - givenAmount;
-            player.sendMessage("§a=== 部分取出成功 ===");
-            player.sendMessage("§7物品: §e" + sample.getType().name() + " x" + givenAmount);
-            player.sendMessage("§7剩余: §e" + left + " 个");
-            player.sendMessage("§c背包空间不足，请清理后继续取出");
+            player.sendMessage(I18n.get(player, "marketlistener.withdraw_partial"));
+            player.sendMessage(I18n.get(player, "marketlistener.withdraw_partial_item", getItemDisplayName(sample) + " x" + givenAmount));
+            player.sendMessage(I18n.get(player, "marketlistener.withdraw_remaining", left));
+            player.sendMessage(I18n.get(player, "marketlistener.withdraw_partial_tip"));
 
             Inventory top = player.getOpenInventory().getTopInventory();
             if (top != null) {
@@ -1382,20 +1460,18 @@ public class MarketListener implements Listener {
             java.util.List<String> notifications = dbManager.getUnreadNotifications(player.getUniqueId());
             
             if (!notifications.isEmpty()) {
-                // 在主线程中显示通知
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
                     player.sendMessage("");
-                    player.sendMessage("§6=== 未读通知 ===");
+                    player.sendMessage(I18n.get(player, "marketlistener.notification_title"));
                     player.sendMessage("");
                     for (String notification : notifications) {
                         player.sendMessage(notification);
                     }
                     player.sendMessage("");
-                    player.sendMessage("§7共 §e" + notifications.size() + " §7条通知");
+                    player.sendMessage(I18n.get(player, "marketlistener.notification_count", notifications.size()));
                     player.sendMessage("");
                     
-                    // 标记通知为已读
                     Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                         dbManager.markNotificationsAsRead(player.getUniqueId());
                     });

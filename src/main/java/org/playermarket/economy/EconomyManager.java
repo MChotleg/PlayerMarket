@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.playermarket.PlayerMarket;
+import org.playermarket.utils.I18n;
 
 public class EconomyManager {
     private final PlayerMarket plugin;
@@ -19,28 +20,26 @@ public class EconomyManager {
 
     private boolean setupEconomy() {
         try {
-            // 检查Vault是否存在
             if (plugin.getServer().getPluginManager().getPlugin("Vault") == null) {
-                plugin.getLogger().warning("Vault 未安装，经济功能将禁用");
+                plugin.getLogger().warning(I18n.get("economy.vault.notfound"));
                 return false;
             }
 
-            // 获取经济服务提供者
             RegisteredServiceProvider<Economy> rsp = plugin.getServer()
                     .getServicesManager().getRegistration(Economy.class);
 
             if (rsp == null) {
-                plugin.getLogger().warning("未找到经济服务提供者");
+                plugin.getLogger().warning(I18n.get("economy.provider.notfound"));
                 return false;
             }
 
             economy = rsp.getProvider();
             providerName = economy.getName();
             enabled = true;
-            plugin.getLogger().info("经济系统已连接: " + providerName);
+            plugin.getLogger().info(I18n.get("economy.connected", providerName));
             return true;
         } catch (Exception e) {
-            plugin.getLogger().severe("经济系统初始化失败: " + e.getMessage());
+            plugin.getLogger().severe(I18n.get("economy.init.failed", e.getMessage()));
             return false;
         }
     }
@@ -55,29 +54,26 @@ public class EconomyManager {
         return providerName;
     }
 
-    // 获取玩家余额
     public double getBalance(Player player) {
         if (!isEconomyEnabled()) return 0.0;
         try {
             return economy.getBalance(player);
         } catch (Exception e) {
-            plugin.getLogger().warning("获取玩家余额失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("economy.getbalance.failed", e.getMessage()));
             return 0.0;
         }
     }
     
-    // 获取玩家余额（支持UUID，玩家可以不在线）
     public double getBalance(java.util.UUID playerUuid) {
         if (!isEconomyEnabled()) return 0.0;
         try {
             return economy.getBalance(Bukkit.getOfflinePlayer(playerUuid));
         } catch (Exception e) {
-            plugin.getLogger().warning("获取玩家余额失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("economy.getbalance.failed", e.getMessage()));
             return 0.0;
         }
     }
 
-    // 存款
     public boolean deposit(Player player, double amount) {
         if (!isEconomyEnabled()) return false;
         if (amount <= 0) return false;
@@ -86,12 +82,11 @@ public class EconomyManager {
             economy.depositPlayer(player, amount);
             return true;
         } catch (Exception e) {
-            plugin.getLogger().warning("存款操作失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("economy.deposit.failed", e.getMessage()));
             return false;
         }
     }
     
-    // 存款（支持UUID，玩家可以不在线）
     public boolean deposit(java.util.UUID playerUuid, double amount) {
         if (!isEconomyEnabled()) return false;
         if (amount <= 0) return false;
@@ -100,12 +95,11 @@ public class EconomyManager {
             economy.depositPlayer(Bukkit.getOfflinePlayer(playerUuid), amount);
             return true;
         } catch (Exception e) {
-            plugin.getLogger().warning("存款操作失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("economy.deposit.failed", e.getMessage()));
             return false;
         }
     }
 
-    // 取款（检查余额是否足够）
     public boolean withdraw(Player player, double amount) {
         if (!isEconomyEnabled()) return false;
         if (amount <= 0) return false;
@@ -117,12 +111,11 @@ public class EconomyManager {
             }
             return false;
         } catch (Exception e) {
-            plugin.getLogger().warning("取款操作失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("economy.withdraw.failed", e.getMessage()));
             return false;
         }
     }
     
-    // 取款（支持UUID，玩家可以不在线）
     public boolean withdraw(java.util.UUID playerUuid, double amount) {
         if (!isEconomyEnabled()) return false;
         if (amount <= 0) return false;
@@ -134,12 +127,11 @@ public class EconomyManager {
             }
             return false;
         } catch (Exception e) {
-            plugin.getLogger().warning("取款操作失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("economy.withdraw.failed", e.getMessage()));
             return false;
         }
     }
 
-    // 格式化金额（显示货币符号）
     public String format(double amount) {
         if (!isEconomyEnabled()) return String.valueOf(amount);
         try {
@@ -149,13 +141,12 @@ public class EconomyManager {
         }
     }
 
-    // 检查是否有足够余额
     public boolean hasEnough(Player player, double amount) {
         if (!isEconomyEnabled()) return false;
         try {
             return economy.has(player, amount);
         } catch (Exception e) {
-            plugin.getLogger().warning("检查余额失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("economy.has.failed", e.getMessage()));
             return false;
         }
     }

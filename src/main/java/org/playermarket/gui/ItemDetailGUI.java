@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.playermarket.PlayerMarket;
 import org.playermarket.model.MarketItem;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,9 +37,9 @@ public class ItemDetailGUI implements InventoryHolder {
     public ItemDetailGUI(PlayerMarket plugin, MarketItem marketItem) {
         this.plugin = plugin;
         this.marketItem = marketItem;
-        this.title = "§6商品详情 §7| §eID: " + marketItem.getId();
+        this.title = I18n.get("gui.item.detail") + " §7| §eID: " + marketItem.getId();
         this.inventory = Bukkit.createInventory(this, 54, title);
-        
+
         initializeGUI();
     }
     
@@ -50,77 +51,80 @@ public class ItemDetailGUI implements InventoryHolder {
         inventory.setItem(13, itemStack);
         
         // 添加信息按钮
-        addInfoButtons();
+        addInfoButtons(null);
         
         // 添加数量控制区域
-        addQuantityControls();
+        addQuantityControls(null);
         
         // 添加购买按钮
         addBuyButton();
+        
+        // 添加装饰边框
+        addDecorativeBorder();
     }
     
-    private void addInfoButtons() {
+    private void addInfoButtons(Player player) {
         // 价格信息（槽位 11）
         ItemStack priceButton = createInfoButton(
-            "§6§l价格信息",
+            I18n.get(player, "itemdetail.price_info"),
             Material.GOLD_INGOT,
-            "§7库存: §e" + marketItem.getAmount(),
-            "§7单价: §e" + plugin.getEconomyManager().format(marketItem.getPrice() / marketItem.getAmount()) + " / 个"
+            I18n.get(player, "itemdetail.stock", marketItem.getAmount()),
+            I18n.get(player, "itemdetail.unit_price", plugin.getEconomyManager().format(marketItem.getPrice() / marketItem.getAmount()))
         );
         inventory.setItem(11, priceButton);
         
         // 卖家信息（槽位 15）
         ItemStack sellerButton = createInfoButton(
-            "§6§l卖家信息",
+            I18n.get(player, "itemdetail.seller_info"),
             Material.PLAYER_HEAD,
-            "§7名称: §e" + marketItem.getSellerName(),
-            "§7上架时间: §e" + formatTime(marketItem.getListTime())
+            I18n.get(player, "itemdetail.seller_name", marketItem.getSellerName()),
+            I18n.get(player, "itemdetail.list_time", formatTime(marketItem.getListTime(), player))
         );
         inventory.setItem(15, sellerButton);
     }
     
-    private void addQuantityControls() {
+    private void addQuantityControls(Player player) {
         // 数量显示（槽位 31）
-        ItemStack amountDisplay = createAmountDisplay();
+        ItemStack amountDisplay = createAmountDisplay(player);
         inventory.setItem(31, amountDisplay);
         
         // 基数显示（槽位 40）
-        ItemStack multiplierDisplay = createMultiplierDisplay();
+        ItemStack multiplierDisplay = createMultiplierDisplay(player);
         inventory.setItem(40, multiplierDisplay);
         
         // 增加数量按钮（槽位 30）
         ItemStack increaseButton = createControlButton(
-            "§a§l增加数量",
+            I18n.get(player, "itemdetail.increase"),
             Material.GREEN_STAINED_GLASS_PANE,
-            "§7点击增加购买数量",
-            "§7当前基数: §e" + DEFAULT_MULTIPLIER
+            I18n.get(player, "itemdetail.increase.lore"),
+            I18n.get(player, "itemdetail.current_multiplier", DEFAULT_MULTIPLIER)
         );
         inventory.setItem(30, increaseButton);
         
         // 减少数量按钮（槽位 32）
         ItemStack decreaseButton = createControlButton(
-            "§c§l减少数量",
+            I18n.get(player, "itemdetail.decrease"),
             Material.RED_STAINED_GLASS_PANE,
-            "§7点击减少购买数量",
-            "§7当前基数: §e" + DEFAULT_MULTIPLIER
+            I18n.get(player, "itemdetail.decrease.lore"),
+            I18n.get(player, "itemdetail.current_multiplier", DEFAULT_MULTIPLIER)
         );
         inventory.setItem(32, decreaseButton);
         
         // 增加基数按钮（槽位 39）
         ItemStack increaseMultiplierButton = createControlButton(
-            "§a§l×10",
+            I18n.get(player, "itemdetail.multiplier_x10"),
             Material.LIME_WOOL,
-            "§7点击将基数乘以10",
-            "§7当前基数: §e" + DEFAULT_MULTIPLIER
+            I18n.get(player, "itemdetail.multiplier_x10.lore"),
+            I18n.get(player, "itemdetail.current_multiplier", DEFAULT_MULTIPLIER)
         );
         inventory.setItem(39, increaseMultiplierButton);
         
         // 减少基数按钮（槽位 41）
         ItemStack decreaseMultiplierButton = createControlButton(
-            "§c§l÷10",
+            I18n.get(player, "itemdetail.multiplier_div10"),
             Material.RED_WOOL,
-            "§7点击将基数除以10",
-            "§7当前基数: §e" + DEFAULT_MULTIPLIER
+            I18n.get(player, "itemdetail.multiplier_div10.lore"),
+            I18n.get(player, "itemdetail.current_multiplier", DEFAULT_MULTIPLIER)
         );
         inventory.setItem(41, decreaseMultiplierButton);
     }
@@ -128,46 +132,48 @@ public class ItemDetailGUI implements InventoryHolder {
     private void addBuyButton() {
         ItemStack buyButton = new ItemStack(Material.EMERALD_BLOCK);
         ItemMeta meta = buyButton.getItemMeta();
-        
+
         if (meta != null) {
-            meta.setDisplayName("§a§l确认购买");
-            
+            meta.setDisplayName(I18n.get("gui.item.buy"));
+
             List<String> lore = new ArrayList<>();
+            lore.add("");
+            lore.add(I18n.get("itemdetail.buy.lore"));
             meta.setLore(lore);
-            
+
             buyButton.setItemMeta(meta);
         }
-        
+
         inventory.setItem(49, buyButton);
-        
-        // 用黑色玻璃板填充空格子
+    }
+
+    private void addDecorativeBorder() {
         ItemStack blackPane = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta blackMeta = blackPane.getItemMeta();
         if (blackMeta != null) {
             blackMeta.setDisplayName(" ");
             blackPane.setItemMeta(blackMeta);
         }
-        
-        int[] emptySlots = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 33, 34, 35, 36, 37, 38, 42, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53};
+
+        int[] emptySlots = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 33, 34, 35, 36, 37, 38, 42, 43, 44, 46, 47, 48, 50, 51, 52, 53};
         for (int slot : emptySlots) {
             inventory.setItem(slot, blackPane);
         }
-        
-        // 添加返回按钮（槽位 45）
+
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
-        
+
         if (backMeta != null) {
-            backMeta.setDisplayName("§c§l返回");
-            
+            backMeta.setDisplayName(I18n.get("gui.back"));
+
             List<String> backLore = new ArrayList<>();
             backLore.add("");
-            backLore.add("§7点击返回上一页");
+            backLore.add(I18n.get("gui.back.to.market"));
             backMeta.setLore(backLore);
-            
+
             backButton.setItemMeta(backMeta);
         }
-        
+
         inventory.setItem(45, backButton);
     }
     
@@ -183,18 +189,18 @@ public class ItemDetailGUI implements InventoryHolder {
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
     }
     
-    private ItemStack createAmountDisplay() {
+    private ItemStack createAmountDisplay(Player player) {
         ItemStack display = new ItemStack(Material.PAPER);
         ItemMeta meta = display.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§6§l购买数量");
+            meta.setDisplayName(I18n.get(player, "itemdetail.amount_title"));
             
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§e1 §7个");
+            lore.add("§e1 " + I18n.get(player, "marketitems.unit"));
             lore.add("");
-            lore.add("§7总价: §e" + plugin.getEconomyManager().format(marketItem.getPrice() / marketItem.getAmount()));
+            lore.add(I18n.get(player, "itemdetail.total_price", plugin.getEconomyManager().format(marketItem.getPrice() / marketItem.getAmount())));
             meta.setLore(lore);
             
             display.setItemMeta(meta);
@@ -203,26 +209,28 @@ public class ItemDetailGUI implements InventoryHolder {
         return display;
     }
     
-    private ItemStack createMultiplierDisplay() {
+    private ItemStack createMultiplierDisplay(Player player) {
         ItemStack display = new ItemStack(Material.COMPASS);
         ItemMeta meta = display.getItemMeta();
-        
+
         if (meta != null) {
-            meta.setDisplayName("§6§l基数");
-            
+            meta.setDisplayName(I18n.get(player, "itemdetail.multiplier_title"));
+
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§e1");
+            lore.add(String.format(I18n.get(player, "itemdetail.current_multiplier"), DEFAULT_MULTIPLIER));
             lore.add("");
-            lore.add("§7每次增加/减少的数量");
+            lore.add(I18n.get(player, "itemdetail.multiplier_desc"));
+            lore.add("");
+            lore.add(I18n.get(player, "itemdetail.multiplier_adjust"));
             meta.setLore(lore);
-            
+
             display.setItemMeta(meta);
         }
-        
+
         return display;
     }
-    
+
     private ItemStack createControlButton(String name, Material material, String... loreLines) {
         ItemStack button = new ItemStack(material);
         ItemMeta meta = button.getItemMeta();
@@ -260,21 +268,24 @@ public class ItemDetailGUI implements InventoryHolder {
         
         return button;
     }
-    
-    private String formatTime(java.sql.Timestamp timestamp) {
+
+    private String formatTime(java.sql.Timestamp timestamp, Player player) {
+        if (timestamp == null) {
+            return I18n.get(player, "time.just_now");
+        }
         long diff = System.currentTimeMillis() - timestamp.getTime();
         long minutes = diff / (1000 * 60);
         long hours = minutes / 60;
         long days = hours / 24;
         
         if (days > 0) {
-            return days + " 天前";
+            return I18n.get(player, "time.days_ago", days);
         } else if (hours > 0) {
-            return hours + " 小时前";
+            return I18n.get(player, "time.hours_ago", hours);
         } else if (minutes > 0) {
-            return minutes + " 分钟前";
+            return I18n.get(player, "time.minutes_ago", minutes);
         } else {
-            return "刚刚";
+            return I18n.get(player, "time.just_now");
         }
     }
     
@@ -283,9 +294,44 @@ public class ItemDetailGUI implements InventoryHolder {
         playerPurchaseAmounts.put(player.getUniqueId(), 1);
         playerMultiplier.put(player.getUniqueId(), DEFAULT_MULTIPLIER);
         
+        // 根据玩家语言更新界面文本
+        updateLanguageForPlayer(player);
+        
         Bukkit.getScheduler().runTask(plugin, () -> {
             player.openInventory(inventory);
         });
+    }
+    
+    private void updateLanguageForPlayer(Player player) {
+        // 更新购买按钮
+        ItemStack buyButton = inventory.getItem(49);
+        if (buyButton != null) {
+            ItemMeta meta = buyButton.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(I18n.get(player, "gui.item.buy"));
+                buyButton.setItemMeta(meta);
+                inventory.setItem(49, buyButton);
+            }
+        }
+        
+        // 更新返回按钮
+        ItemStack backButton = inventory.getItem(45);
+        if (backButton != null) {
+            ItemMeta meta = backButton.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(I18n.get(player, "gui.back"));
+                List<String> backLore = new ArrayList<>();
+                backLore.add("");
+                backLore.add(I18n.get(player, "gui.back.to.market"));
+                meta.setLore(backLore);
+                backButton.setItemMeta(meta);
+                inventory.setItem(45, backButton);
+            }
+        }
+        
+        // 更新其他所有 localized 组件
+        addInfoButtons(player);
+        addQuantityControls(player);
     }
     
     public void updateDisplay(Player player) {
@@ -302,10 +348,10 @@ public class ItemDetailGUI implements InventoryHolder {
             if (meta != null) {
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add("§e" + amount + " §7个");
+                lore.add("§e" + amount + " " + I18n.get(player, "marketitems.unit"));
                 lore.add("");
                 double totalPrice = (marketItem.getPrice() / marketItem.getAmount()) * amount;
-                lore.add("§7总价: §e" + plugin.getEconomyManager().format(totalPrice));
+                lore.add(I18n.get(player, "itemdetail.total_price", plugin.getEconomyManager().format(totalPrice)));
                 meta.setLore(lore);
                 amountDisplay.setItemMeta(meta);
                 inventory.setItem(31, amountDisplay);
@@ -319,9 +365,11 @@ public class ItemDetailGUI implements InventoryHolder {
             if (meta != null) {
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add("§e" + multiplier);
+                lore.add(String.format(I18n.get(player, "itemdetail.current_multiplier"), multiplier));
                 lore.add("");
-                lore.add("§7每次增加/减少的数量");
+                lore.add(I18n.get(player, "itemdetail.multiplier_desc"));
+                lore.add("");
+                lore.add(I18n.get(player, "itemdetail.multiplier_adjust"));
                 meta.setLore(lore);
                 multiplierDisplay.setItemMeta(meta);
                 inventory.setItem(40, multiplierDisplay);
@@ -329,10 +377,10 @@ public class ItemDetailGUI implements InventoryHolder {
         }
         
         // 更新按钮的基数提示
-        updateButtonLore(30, multiplier);
-        updateButtonLore(32, multiplier);
-        updateButtonLore(39, multiplier);
-        updateButtonLore(41, multiplier);
+        updateButtonLore(30, multiplier, player);
+        updateButtonLore(32, multiplier, player);
+        updateButtonLore(39, multiplier, player);
+        updateButtonLore(41, multiplier, player);
         
         // 重新打开界面以更新显示
         Bukkit.getScheduler().runTask(plugin, () -> {
@@ -342,13 +390,13 @@ public class ItemDetailGUI implements InventoryHolder {
         });
     }
     
-    private void updateButtonLore(int slot, int multiplier) {
+    private void updateButtonLore(int slot, int multiplier, Player player) {
         ItemStack item = inventory.getItem(slot);
         if (item != null && item.getItemMeta() != null) {
             ItemMeta meta = item.getItemMeta();
             List<String> lore = meta.getLore();
             if (lore != null && lore.size() >= 2) {
-                lore.set(1, "§7当前基数: §e" + multiplier);
+                lore.set(1, I18n.get(player, "itemdetail.current_multiplier", multiplier));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
                 inventory.setItem(slot, item);

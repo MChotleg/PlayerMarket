@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.playermarket.PlayerMarket;
 import org.playermarket.model.MarketItem;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,7 +37,7 @@ public class DelistingDetailGUI implements InventoryHolder {
         this.plugin = plugin;
         this.marketItem = marketItem;
         this.player = player;
-        this.title = "§6商品下架 §7| §eID: " + marketItem.getId();
+        this.title = String.format(I18n.get(player, "delisting.title"), marketItem.getId());
         this.inventory = Bukkit.createInventory(this, 54, title);
         
         initializeGUI();
@@ -71,19 +72,19 @@ public class DelistingDetailGUI implements InventoryHolder {
     
     private void addInfoButtons() {
         ItemStack priceButton = createInfoButton(
-            "§6§l价格信息",
+            I18n.get(player, "delisting.price_info"),
             Material.GOLD_BLOCK,
-            "§7库存: §e" + marketItem.getAmount() + " 个",
-            "§7单价: §e" + plugin.getEconomyManager().format(marketItem.getUnitPrice()) + " / 个",
-            "§7总价: §e" + plugin.getEconomyManager().format(marketItem.getPrice())
+            String.format(I18n.get(player, "delisting.stock"), marketItem.getAmount()),
+            String.format(I18n.get(player, "delisting.unit_price"), plugin.getEconomyManager().format(marketItem.getUnitPrice())),
+            String.format(I18n.get(player, "delisting.total_price"), plugin.getEconomyManager().format(marketItem.getPrice()))
         );
         inventory.setItem(11, priceButton);
         
         ItemStack timeButton = createInfoButton(
-            "§6§l上架信息",
+            I18n.get(player, "delisting.list_info"),
             Material.CLOCK,
-            "§7上架时间: §e" + formatTime(marketItem.getListTime()),
-            "§7商品ID: §e" + marketItem.getId()
+            String.format(I18n.get(player, "delisting.list_time"), formatTime(marketItem.getListTime())),
+            String.format(I18n.get(player, "delisting.item_id"), marketItem.getId())
         );
         inventory.setItem(15, timeButton);
     }
@@ -96,34 +97,34 @@ public class DelistingDetailGUI implements InventoryHolder {
         inventory.setItem(40, multiplierDisplay);
         
         ItemStack increaseButton = createControlButton(
-            "§a§l增加数量",
+            I18n.get(player, "delisting.increase_amount"),
             Material.LIME_STAINED_GLASS_PANE,
-            "§7点击增加下架数量",
-            "§7当前基数: §e" + DEFAULT_MULTIPLIER
+            I18n.get(player, "delisting.increase.lore"),
+            String.format(I18n.get(player, "delisting.multiplier_current"), DEFAULT_MULTIPLIER)
         );
         inventory.setItem(30, increaseButton);
         
         ItemStack decreaseButton = createControlButton(
-            "§c§l减少数量",
+            I18n.get(player, "delisting.decrease_amount"),
             Material.RED_STAINED_GLASS_PANE,
-            "§7点击减少下架数量",
-            "§7当前基数: §e" + DEFAULT_MULTIPLIER
+            I18n.get(player, "delisting.decrease.lore"),
+            String.format(I18n.get(player, "delisting.multiplier_current"), DEFAULT_MULTIPLIER)
         );
         inventory.setItem(32, decreaseButton);
         
         ItemStack increaseMultiplierButton = createControlButton(
-            "§a§l×10",
+            I18n.get(player, "delisting.multiply_10"),
             Material.LIME_WOOL,
-            "§7点击将基数乘以10",
-            "§7当前基数: §e" + DEFAULT_MULTIPLIER
+            I18n.get(player, "delisting.click_multiply_10"),
+            String.format(I18n.get(player, "delisting.multiplier_current"), DEFAULT_MULTIPLIER)
         );
         inventory.setItem(39, increaseMultiplierButton);
         
         ItemStack decreaseMultiplierButton = createControlButton(
-            "§c§l÷10",
+            I18n.get(player, "delisting.divide_10"),
             Material.RED_WOOL,
-            "§7点击将基数除以10",
-            "§7当前基数: §e" + DEFAULT_MULTIPLIER
+            I18n.get(player, "delisting.click_divide_10"),
+            String.format(I18n.get(player, "delisting.multiplier_current"), DEFAULT_MULTIPLIER)
         );
         inventory.setItem(41, decreaseMultiplierButton);
     }
@@ -132,10 +133,10 @@ public class DelistingDetailGUI implements InventoryHolder {
         ItemStack delistOneButton = new ItemStack(Material.GOLD_INGOT);
         ItemMeta meta = delistOneButton.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName("§e§l下架指定数量");
+            meta.setDisplayName(I18n.get(player, "delisting.one"));
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§e数量: §f" + getDelistAmount());
+            lore.add(String.format(I18n.get(player, "delisting.one.lore"), getDelistAmount()));
             meta.setLore(lore);
             delistOneButton.setItemMeta(meta);
         }
@@ -144,10 +145,10 @@ public class DelistingDetailGUI implements InventoryHolder {
         ItemStack delistAllButton = new ItemStack(Material.DIAMOND);
         ItemMeta allMeta = delistAllButton.getItemMeta();
         if (allMeta != null) {
-            allMeta.setDisplayName("§c§l下架全部商品");
+            allMeta.setDisplayName(I18n.get(player, "delisting.all"));
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7数量: §f" + marketItem.getAmount());
+            lore.add(String.format(I18n.get(player, "delisting.all.lore"), marketItem.getAmount()));
             allMeta.setLore(lore);
             delistAllButton.setItemMeta(allMeta);
         }
@@ -157,11 +158,11 @@ public class DelistingDetailGUI implements InventoryHolder {
         ItemMeta backMeta = backButton.getItemMeta();
         
         if (backMeta != null) {
-            backMeta.setDisplayName("§c§l返回");
+            backMeta.setDisplayName(I18n.get(player, "gui.back"));
             
             List<String> backLore = new ArrayList<>();
             backLore.add("");
-            backLore.add("§7点击返回我的上架界面");
+            backLore.add(I18n.get(player, "delisting.back_lore"));
             backMeta.setLore(backLore);
             
             backButton.setItemMeta(backMeta);
@@ -174,14 +175,14 @@ public class DelistingDetailGUI implements InventoryHolder {
         ItemStack display = new ItemStack(Material.PAPER);
         ItemMeta meta = display.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName("§6§l下架数量");
+            meta.setDisplayName(I18n.get(player, "delisting.amount_title"));
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§e1 §7个");
+            lore.add(String.format(I18n.get(player, "delisting.amount_current"), 1));
             lore.add("");
-            lore.add("§7最大可下架: §e" + marketItem.getAmount() + " 个");
+            lore.add(String.format(I18n.get(player, "delisting.amount_max"), marketItem.getAmount()));
             lore.add("");
-            lore.add("§e点击调整数量");
+            lore.add(I18n.get(player, "delisting.click_adjust"));
             meta.setLore(lore);
             display.setItemMeta(meta);
         }
@@ -192,14 +193,14 @@ public class DelistingDetailGUI implements InventoryHolder {
         ItemStack display = new ItemStack(Material.COMPASS);
         ItemMeta meta = display.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName("§6§l数量基数");
+            meta.setDisplayName(I18n.get(player, "delisting.multiplier_title"));
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§e1");
+            lore.add(String.format(I18n.get(player, "delisting.multiplier_current"), 1));
             lore.add("");
-            lore.add("§7每次增加/减少的数量");
+            lore.add(I18n.get(player, "delisting.multiplier_desc"));
             lore.add("");
-            lore.add("§e点击调整基数");
+            lore.add(I18n.get(player, "delisting.multiplier_adjust"));
             meta.setLore(lore);
             display.setItemMeta(meta);
         }
@@ -243,13 +244,13 @@ public class DelistingDetailGUI implements InventoryHolder {
         long days = hours / 24;
         
         if (days > 0) {
-            return days + " 天前";
+            return String.format(I18n.get(player, "time.days_ago"), days);
         } else if (hours > 0) {
-            return hours + " 小时前";
+            return String.format(I18n.get(player, "time.hours_ago"), hours);
         } else if (minutes > 0) {
-            return minutes + " 分钟前";
+            return String.format(I18n.get(player, "time.minutes_ago"), minutes);
         } else {
-            return "刚刚";
+            return I18n.get(player, "time.just_now");
         }
     }
     
@@ -272,14 +273,14 @@ public class DelistingDetailGUI implements InventoryHolder {
         if (amountDisplay != null) {
             ItemMeta meta = amountDisplay.getItemMeta();
             if (meta != null) {
-                List<String> lore = new ArrayList<>();
-                lore.add("");
-                lore.add("§e" + amount + " §7个");
-                lore.add("");
-                lore.add("§7最大可下架: §e" + marketItem.getAmount() + " 个");
-                meta.setLore(lore);
-                amountDisplay.setItemMeta(meta);
-                inventory.setItem(31, amountDisplay);
+                List<String> lore = meta.getLore();
+                if (lore != null && lore.size() >= 4) {
+                    lore.set(1, String.format(I18n.get(player, "delisting.amount_current"), amount));
+                    lore.set(3, String.format(I18n.get(player, "delisting.amount_max"), marketItem.getAmount()));
+                    meta.setLore(lore);
+                    amountDisplay.setItemMeta(meta);
+                    inventory.setItem(31, amountDisplay);
+                }
             }
         }
         
@@ -287,14 +288,14 @@ public class DelistingDetailGUI implements InventoryHolder {
         if (multiplierDisplay != null) {
             ItemMeta meta = multiplierDisplay.getItemMeta();
             if (meta != null) {
-                List<String> lore = new ArrayList<>();
-                lore.add("");
-                lore.add("§e" + multiplier);
-                lore.add("");
-                lore.add("§7每次增加/减少的数量");
-                meta.setLore(lore);
-                multiplierDisplay.setItemMeta(meta);
-                inventory.setItem(40, multiplierDisplay);
+                List<String> lore = meta.getLore();
+                if (lore != null && lore.size() >= 4) {
+                    lore.set(1, String.format(I18n.get(player, "delisting.multiplier_current"), multiplier));
+                    lore.set(3, I18n.get(player, "delisting.multiplier_desc"));
+                    meta.setLore(lore);
+                    multiplierDisplay.setItemMeta(meta);
+                    inventory.setItem(40, multiplierDisplay);
+                }
             }
         }
         
@@ -315,8 +316,8 @@ public class DelistingDetailGUI implements InventoryHolder {
         if (item != null && item.getItemMeta() != null) {
             ItemMeta meta = item.getItemMeta();
             List<String> lore = meta.getLore();
-            if (lore != null && lore.size() >= 5) {
-                lore.set(4, "§e数量: §f" + amount);
+            if (lore != null && lore.size() >= 2) {
+                lore.set(1, String.format(I18n.get(player, "delisting.one.lore"), amount));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
                 inventory.setItem(slot, item);
@@ -330,7 +331,7 @@ public class DelistingDetailGUI implements InventoryHolder {
             ItemMeta meta = item.getItemMeta();
             List<String> lore = meta.getLore();
             if (lore != null && lore.size() >= 2) {
-                lore.set(1, "§7当前基数: §e" + multiplier);
+                lore.set(1, String.format(I18n.get(player, "delisting.multiplier_current"), multiplier));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
                 inventory.setItem(slot, item);
@@ -344,7 +345,7 @@ public class DelistingDetailGUI implements InventoryHolder {
             ItemMeta meta = item.getItemMeta();
             List<String> lore = meta.getLore();
             if (lore != null && lore.size() >= 2) {
-                lore.set(1, "§7当前基数: §e" + priceMultiplier);
+                lore.set(1, String.format(I18n.get(player, "delisting.multiplier_current"), priceMultiplier));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
                 inventory.setItem(slot, item);

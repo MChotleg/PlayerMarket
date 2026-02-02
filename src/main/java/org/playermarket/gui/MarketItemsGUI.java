@@ -11,6 +11,7 @@ import org.playermarket.PlayerMarket;
 import org.playermarket.model.MarketItem;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.economy.EconomyManager;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +66,7 @@ public class MarketItemsGUI implements InventoryHolder {
     
     private void createInventory() {
         int totalPages = (marketItems.size() + itemsPerPage - 1) / itemsPerPage;
-        inventory = Bukkit.createInventory(this, 54, "§6购买市场 - 第 " + currentPage + " 页");
+        inventory = Bukkit.createInventory(this, 54, I18n.get(player, "gui.page.title", I18n.get(player, "market.buy"), currentPage));
         
         // 填充商品
         int startIndex = (currentPage - 1) * itemsPerPage;
@@ -87,7 +88,7 @@ public class MarketItemsGUI implements InventoryHolder {
         
         // 上一页按钮
         if (currentPage > 1) {
-            ItemStack prevButton = createPageButton("§c§l上一页", Material.ARROW, "§7点击返回第 " + (currentPage - 1) + " 页");
+            ItemStack prevButton = createPageButton(I18n.get(player, "gui.page.previous"), Material.ARROW, I18n.get(player, "gui.page.previous.lore", currentPage - 1));
             inventory.setItem(45, prevButton);
         } else {
             inventory.setItem(45, blackPane);
@@ -96,19 +97,19 @@ public class MarketItemsGUI implements InventoryHolder {
         // 返回按钮（返回上一页；若已是第一页则返回主菜单）
         ItemStack backButton;
         if (currentPage > 1) {
-            backButton = createPageButton("§c§l返回", Material.BARRIER, "§7点击返回上一页");
+            backButton = createPageButton(I18n.get(player, "gui.back"), Material.BARRIER, I18n.get(player, "gui.back.to.market"));
         } else {
-            backButton = createPageButton("§c§l返回", Material.BARRIER, "§7点击返回主菜单");
+            backButton = createPageButton(I18n.get(player, "gui.back"), Material.BARRIER, I18n.get(player, "gui.back.to.main"));
         }
         inventory.setItem(46, backButton);
         
         // 当前页显示
-        ItemStack pageIndicator = createPageIndicator(currentPage, totalPages);
+        ItemStack pageIndicator = createPageIndicator(player, currentPage, totalPages);
         inventory.setItem(49, pageIndicator);
         
         // 下一页按钮
         if (currentPage < totalPages) {
-            ItemStack nextButton = createPageButton("§a§l下一页", Material.ARROW, "§7点击前往第 " + (currentPage + 1) + " 页");
+            ItemStack nextButton = createPageButton(I18n.get(player, "gui.page.next"), Material.ARROW, I18n.get(player, "gui.page.next.lore", currentPage + 1));
             inventory.setItem(53, nextButton);
         } else {
             inventory.setItem(53, blackPane);
@@ -128,13 +129,13 @@ public class MarketItemsGUI implements InventoryHolder {
         ItemMeta meta = itemStack.getItemMeta();
         
         if (meta != null) {
-            // 保留原有的显示名称
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7卖家: §e" + item.getSellerName());
-            lore.add("§7单价: §e" + economyManager.format(item.getUnitPrice()) + " / 个");
-            lore.add("§7数量: §e" + item.getAmount() + " 个");
-            lore.add("§7总价: §e" + economyManager.format(item.getPrice()));
+            lore.add(I18n.get(player, "marketitems.seller", item.getSellerName()));
+            lore.add(I18n.get(player, "marketitems.unit_price", economyManager.format(item.getUnitPrice())));
+            lore.add(I18n.get(player, "marketitems.amount", item.getAmount()));
+            lore.add(I18n.get(player, "marketitems.total_price", economyManager.format(item.getPrice())));
+            lore.add(I18n.get(player, "marketitems.id", item.getId()));
             meta.setLore(lore);
             itemStack.setItemMeta(meta);
         }
@@ -157,18 +158,18 @@ public class MarketItemsGUI implements InventoryHolder {
         return button;
     }
     
-    private ItemStack createPageIndicator(int currentPage, int totalPages) {
+    private ItemStack createPageIndicator(Player player, int currentPage, int totalPages) {
         ItemStack indicator = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = indicator.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§6§l当前页数");
+            meta.setDisplayName(I18n.get(player, "gui.page.indicator.current_pages"));
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7当前: §e" + currentPage);
-            lore.add("§7总页: §e" + totalPages);
+            lore.add(I18n.get(player, "gui.page.indicator.current", currentPage));
+            lore.add(I18n.get(player, "gui.page.indicator.total_pages", totalPages));
             lore.add("");
-            lore.add("§a点击: 刷新页面");
+            lore.add(I18n.get(player, "gui.page.indicator.refresh"));
             meta.setLore(lore);
             indicator.setItemMeta(meta);
         }

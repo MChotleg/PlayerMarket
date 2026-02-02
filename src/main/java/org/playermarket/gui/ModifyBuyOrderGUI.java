@@ -38,7 +38,7 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
         this.plugin = plugin;
         this.buyOrder = buyOrder;
         this.player = player;
-        this.title = "§6修改收购数量 §7| §eID: " + buyOrder.getId();
+        this.title = org.playermarket.utils.I18n.get(player, "modify_buy_order.title", buyOrder.getId());
         this.inventory = Bukkit.createInventory(this, 54, title);
         
         playerNewAmounts.put(player.getUniqueId(), buyOrder.getAmount());
@@ -78,19 +78,19 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
     
     private void addInfoButtons() {
         ItemStack priceButton = createInfoButton(
-            "§6§l价格信息",
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.price_info_title"),
             Material.GOLD_BLOCK,
-            "§7单价: §e" + plugin.getEconomyManager().format(buyOrder.getUnitPrice()) + " / 个",
-            "§7当前数量: §e" + buyOrder.getAmount() + " 个",
-            "§7剩余数量: §e" + buyOrder.getRemainingAmount() + " 个"
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.price_unit", plugin.getEconomyManager().format(buyOrder.getUnitPrice())),
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.amount_current", buyOrder.getAmount()),
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.amount_remaining", buyOrder.getRemainingAmount())
         );
         inventory.setItem(11, priceButton);
         
         ItemStack timeButton = createInfoButton(
-            "§6§l订单信息",
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.order_info_title"),
             Material.CLOCK,
-            "§7订单ID: §e" + buyOrder.getId(),
-            "§7创建时间: §e" + formatTime(buyOrder.getCreateTime())
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.order_id", buyOrder.getId()),
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.create_time", formatTime(buyOrder.getCreateTime()))
         );
         inventory.setItem(15, timeButton);
     }
@@ -103,34 +103,34 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
         inventory.setItem(40, multiplierDisplay);
         
         ItemStack increaseButton = createControlButton(
-            "§a§l增加数量",
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.increase_amount"),
             Material.LIME_STAINED_GLASS_PANE,
-            "§7点击增加收购数量",
-            "§7当前基数: §e" + playerMultiplier.get(player.getUniqueId())
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.click_to_increase"),
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.current_multiplier", playerMultiplier.get(player.getUniqueId()))
         );
         inventory.setItem(30, increaseButton);
         
         ItemStack decreaseButton = createControlButton(
-            "§c§l减少数量",
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.decrease_amount"),
             Material.RED_STAINED_GLASS_PANE,
-            "§7点击减少收购数量",
-            "§7当前基数: §e" + playerMultiplier.get(player.getUniqueId())
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.click_to_decrease"),
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.current_multiplier", playerMultiplier.get(player.getUniqueId()))
         );
         inventory.setItem(32, decreaseButton);
         
         ItemStack increaseMultiplierButton = createControlButton(
-            "§a§l×10",
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.multiply_10"),
             Material.LIME_WOOL,
-            "§7点击将基数乘以10",
-            "§7当前基数: §e" + playerMultiplier.get(player.getUniqueId())
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.click_multiply_10"),
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.current_multiplier", playerMultiplier.get(player.getUniqueId()))
         );
         inventory.setItem(39, increaseMultiplierButton);
         
         ItemStack decreaseMultiplierButton = createControlButton(
-            "§c§l÷10",
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.divide_10"),
             Material.RED_WOOL,
-            "§7点击将基数除以10",
-            "§7当前基数: §e" + playerMultiplier.get(player.getUniqueId())
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.click_divide_10"),
+            org.playermarket.utils.I18n.get(player, "modify_buy_order.current_multiplier", playerMultiplier.get(player.getUniqueId()))
         );
         inventory.setItem(41, decreaseMultiplierButton);
     }
@@ -140,11 +140,11 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
         ItemMeta meta = backButton.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§c§l返回");
+            meta.setDisplayName(org.playermarket.utils.I18n.get(player, "gui.back"));
             
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7返回我的收购界面");
+            lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.back_to_my_orders"));
             meta.setLore(lore);
             
             backButton.setItemMeta(meta);
@@ -158,16 +158,16 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
         ItemMeta meta = confirmButton.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§a§l确认修改");
+            meta.setDisplayName(org.playermarket.utils.I18n.get(player, "modify_buy_order.confirm_modify"));
             
             List<String> lore = new ArrayList<>();
             int newAmount = playerNewAmounts.get(player.getUniqueId());
             double newTotalPrice = newAmount * buyOrder.getUnitPrice();
             
             lore.add("");
-            lore.add("§7新数量: §e" + newAmount + " 个");
-            lore.add("§7单价: §e" + plugin.getEconomyManager().format(buyOrder.getUnitPrice()) + " / 个");
-            lore.add("§7新总价: §e" + plugin.getEconomyManager().format(newTotalPrice));
+            lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.new_amount", newAmount));
+            lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.price_unit", plugin.getEconomyManager().format(buyOrder.getUnitPrice())));
+            lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.new_total_price", plugin.getEconomyManager().format(newTotalPrice)));
             meta.setLore(lore);
             
             confirmButton.setItemMeta(meta);
@@ -217,45 +217,45 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
     private ItemStack createAmountDisplay() {
         ItemStack display = new ItemStack(Material.PAPER);
         ItemMeta meta = display.getItemMeta();
-        
+
         if (meta != null) {
             int currentAmount = playerNewAmounts.get(player.getUniqueId());
             double totalIncome = currentAmount * buyOrder.getUnitPrice();
-            
-            meta.setDisplayName("§e§l新收购数量");
-            
+
+            meta.setDisplayName(org.playermarket.utils.I18n.get(player, "modify_buy_order.amount_display_title"));
+
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7当前: §e" + currentAmount + " 个");
+            lore.add(String.format(org.playermarket.utils.I18n.get(player, "modify_buy_order.amount_display_current"), currentAmount));
             lore.add("");
-            lore.add("§7总金额: §e" + plugin.getEconomyManager().format(totalIncome));
+            lore.add(String.format(org.playermarket.utils.I18n.get(player, "modify_buy_order.amount_display_total"), plugin.getEconomyManager().format(totalIncome)));
             meta.setLore(lore);
-            
+
             display.setItemMeta(meta);
         }
-        
+
         return display;
     }
     
     private ItemStack createMultiplierDisplay() {
         ItemStack display = new ItemStack(Material.COMPASS);
         ItemMeta meta = display.getItemMeta();
-        
+
         if (meta != null) {
             int multiplier = playerMultiplier.get(player.getUniqueId());
-            
-            meta.setDisplayName("§b§l数量倍数");
-            
+
+            meta.setDisplayName(org.playermarket.utils.I18n.get(player, "modify_buy_order.multiplier_display_title"));
+
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7当前: §e" + multiplier + "x");
+            lore.add(String.format(org.playermarket.utils.I18n.get(player, "modify_buy_order.multiplier_display_current"), multiplier));
             lore.add("");
-            lore.add("§7每次增加/减少的数量");
+            lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.multiplier_display_desc"));
             meta.setLore(lore);
-            
+
             display.setItemMeta(meta);
         }
-        
+
         return display;
     }
     
@@ -266,13 +266,13 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
         long days = hours / 24;
         
         if (days > 0) {
-            return days + " 天前";
+            return org.playermarket.utils.I18n.get(player, "time.days_ago", days);
         } else if (hours > 0) {
-            return hours + " 小时前";
+            return org.playermarket.utils.I18n.get(player, "time.hours_ago", hours);
         } else if (minutes > 0) {
-            return minutes + " 分钟前";
+            return org.playermarket.utils.I18n.get(player, "time.minutes_ago", minutes);
         } else {
-            return "刚刚";
+            return org.playermarket.utils.I18n.get(player, "time.just_now");
         }
     }
     
@@ -359,9 +359,9 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
                 
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add("§7当前: §e" + amount + " 个");
+                lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.amount_display_current", amount));
                 lore.add("");
-                lore.add("§7总金额: §e" + plugin.getEconomyManager().format(totalIncome));
+                lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.amount_display_total", plugin.getEconomyManager().format(totalIncome)));
                 meta.setLore(lore);
                 amountDisplay.setItemMeta(meta);
                 inventory.setItem(31, amountDisplay);
@@ -374,16 +374,16 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
             if (meta != null) {
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add("§7当前: §e" + multiplier + "x");
+                lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.multiplier_display_current", multiplier));
                 lore.add("");
-                lore.add("§7每次增加/减少的数量");
+                lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.multiplier_display_desc"));
                 meta.setLore(lore);
                 multiplierDisplay.setItemMeta(meta);
                 inventory.setItem(40, multiplierDisplay);
             }
         }
         
-        ItemStack confirmButton = inventory.getItem(48);
+        ItemStack confirmButton = inventory.getItem(49);
         if (confirmButton != null) {
             ItemMeta meta = confirmButton.getItemMeta();
             if (meta != null) {
@@ -391,12 +391,12 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
                 
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add("§7新数量: §e" + amount + " 个");
-                lore.add("§7单价: §e" + plugin.getEconomyManager().format(buyOrder.getUnitPrice()) + " / 个");
-                lore.add("§7新总价: §e" + plugin.getEconomyManager().format(newTotalPrice));
+                lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.new_amount", amount));
+                lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.price_unit", plugin.getEconomyManager().format(buyOrder.getUnitPrice())));
+                lore.add(org.playermarket.utils.I18n.get(player, "modify_buy_order.new_total_price", plugin.getEconomyManager().format(newTotalPrice)));
                 meta.setLore(lore);
                 confirmButton.setItemMeta(meta);
-                inventory.setItem(48, confirmButton);
+                inventory.setItem(49, confirmButton);
             }
         }
         
@@ -417,7 +417,7 @@ public class ModifyBuyOrderGUI implements InventoryHolder {
             ItemMeta meta = item.getItemMeta();
             List<String> lore = meta.getLore();
             if (lore != null && lore.size() >= 2) {
-                lore.set(1, "§7当前基数: §e" + multiplier);
+                lore.set(1, org.playermarket.utils.I18n.get(player, "modify_buy_order.current_multiplier", multiplier));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
                 inventory.setItem(slot, item);

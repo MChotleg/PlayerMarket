@@ -3,6 +3,7 @@ package org.playermarket.database;
 import org.playermarket.model.MarketItem;
 import org.playermarket.model.BuyOrder;
 import org.playermarket.PlayerMarket;
+import org.playermarket.utils.I18n;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -33,9 +34,9 @@ public class DatabaseManager {
             // 创建表
             createTables();
             
-            plugin.getLogger().info("数据库连接已建立");
+            plugin.getLogger().info(I18n.get("database.connected"));
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "数据库初始化失败", e);
+            plugin.getLogger().log(Level.SEVERE, I18n.get("database.init.failed"), e);
         }
     }
     
@@ -58,10 +59,9 @@ public class DatabaseManager {
         
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createMarketItemsTable);
-            plugin.getLogger().info("数据表已创建/验证");
+            plugin.getLogger().info(I18n.get("database.table.market_items"));
         }
         
-        // 创建仓库表
         String createWarehouseItemsTable = "CREATE TABLE IF NOT EXISTS warehouse_items (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "owner_uuid TEXT NOT NULL," +
@@ -76,10 +76,9 @@ public class DatabaseManager {
         
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createWarehouseItemsTable);
-            plugin.getLogger().info("仓库数据表已创建/验证");
+            plugin.getLogger().info(I18n.get("database.table.warehouse_items"));
         }
         
-        // 创建通知表
         String createNotificationsTable = "CREATE TABLE IF NOT EXISTS notifications (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "player_uuid TEXT NOT NULL," +
@@ -93,7 +92,7 @@ public class DatabaseManager {
         
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createNotificationsTable);
-            plugin.getLogger().info("通知数据表已创建/验证");
+            plugin.getLogger().info(I18n.get("database.table.notifications"));
         }
         
         // 创建收购订单表
@@ -117,82 +116,75 @@ public class DatabaseManager {
         
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createBuyOrdersTable);
-            plugin.getLogger().info("收购订单数据表已创建/验证");
+            plugin.getLogger().info(I18n.get("database.table.buy_orders"));
         }
         
-        // 数据库迁移：检查并添加缺失的列
         migrateDatabase();
     }
     
     private void migrateDatabase() throws SQLException {
-        // 检查并添加 amount 列
         try {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet columns = metaData.getColumns(null, null, "market_items", "amount");
             if (!columns.next()) {
-                plugin.getLogger().info("检测到旧版本数据库，正在添加 amount 列...");
+                plugin.getLogger().info(I18n.get("database.migrate.adding", "amount"));
                 try (Statement stmt = connection.createStatement()) {
                     stmt.execute("ALTER TABLE market_items ADD COLUMN amount INTEGER DEFAULT 1");
-                    plugin.getLogger().info("amount 列添加成功");
+                    plugin.getLogger().info(I18n.get("database.migrate.success", "amount"));
                 }
             }
             columns.close();
         } catch (SQLException e) {
-            plugin.getLogger().warning("数据库迁移失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("database.migrate.failed", e.getMessage()));
         }
         
-        // 检查并添加 unit_price 列
         try {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet columns = metaData.getColumns(null, null, "market_items", "unit_price");
             if (!columns.next()) {
-                plugin.getLogger().info("检测到旧版本数据库，正在添加 unit_price 列...");
+                plugin.getLogger().info(I18n.get("database.migrate.adding", "unit_price"));
                 try (Statement stmt = connection.createStatement()) {
-                    // 先添加 unit_price 列
                     stmt.execute("ALTER TABLE market_items ADD COLUMN unit_price REAL");
-                    plugin.getLogger().info("unit_price 列添加成功");
-                    // 为现有数据计算单价
+                    plugin.getLogger().info(I18n.get("database.migrate.success", "unit_price"));
                     int updatedRows = stmt.executeUpdate("UPDATE market_items SET unit_price = price / amount WHERE amount > 0 AND unit_price IS NULL");
-                    plugin.getLogger().info("已更新 " + updatedRows + " 条数据的单价");
+                    plugin.getLogger().info(I18n.get("database.migrate.updated", updatedRows));
                 }
             }
             columns.close();
         } catch (SQLException e) {
-            plugin.getLogger().warning("数据库迁移失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("database.migrate.failed", e.getMessage()));
         }
 
-        // buy_orders: remaining_amount
         try {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet columns = metaData.getColumns(null, null, "buy_orders", "remaining_amount");
             if (!columns.next()) {
-                plugin.getLogger().info("检测到旧版本数据库，正在添加 buy_orders.remaining_amount 列...");
+                plugin.getLogger().info(I18n.get("database.migrate.adding", "buy_orders.remaining_amount"));
                 try (Statement stmt = connection.createStatement()) {
                     stmt.execute("ALTER TABLE buy_orders ADD COLUMN remaining_amount INTEGER");
                     stmt.executeUpdate("UPDATE buy_orders SET remaining_amount = amount WHERE remaining_amount IS NULL");
-                    plugin.getLogger().info("buy_orders.remaining_amount 列添加成功");
+                    plugin.getLogger().info(I18n.get("database.migrate.success", "buy_orders.remaining_amount"));
                 }
             }
             columns.close();
         } catch (SQLException e) {
-            plugin.getLogger().warning("数据库迁移失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("database.migrate.failed", e.getMessage()));
         }
 
-        // buy_orders: remaining_total_price
         try {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet columns = metaData.getColumns(null, null, "buy_orders", "remaining_total_price");
             if (!columns.next()) {
-                plugin.getLogger().info("检测到旧版本数据库，正在添加 buy_orders.remaining_total_price 列...");
+                plugin.getLogger().info(I18n.get("database.migrate.adding", "buy_orders.remaining_total_price"));
                 try (Statement stmt = connection.createStatement()) {
                     stmt.execute("ALTER TABLE buy_orders ADD COLUMN remaining_total_price REAL");
                     stmt.executeUpdate("UPDATE buy_orders SET remaining_total_price = total_price WHERE remaining_total_price IS NULL");
-                    plugin.getLogger().info("buy_orders.remaining_total_price 列添加成功");
+                    plugin.getLogger().info(I18n.get("database.migrate.success", "buy_orders.remaining_total_price"));
                 }
             }
             columns.close();
         } catch (SQLException e) {
-            plugin.getLogger().warning("数据库迁移失败: " + e.getMessage());
+            plugin.getLogger().warning(I18n.get("database.migrate.failed", e.getMessage()));
         }
     }
     
@@ -809,10 +801,10 @@ public class DatabaseManager {
     }
     
     // 添加通知
-    public boolean addNotification(UUID playerUuid, String playerName, String notificationType, String message, String data) {
+    public int addNotification(UUID playerUuid, String playerName, String notificationType, String message, String data) {
         String sql = "INSERT INTO notifications (player_uuid, player_name, notification_type, message, data, created_time) VALUES (?, ?, ?, ?, ?, ?)";
         
-        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, playerUuid.toString());
             pstmt.setString(2, playerName);
             pstmt.setString(3, notificationType);
@@ -820,10 +812,18 @@ public class DatabaseManager {
             pstmt.setString(5, data);
             pstmt.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
             pstmt.executeUpdate();
-            return true;
+            
+            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getInt(1);
+                } else {
+                    plugin.getLogger().warning("添加通知成功但无法获取生成的ID");
+                    return -1;
+                }
+            }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "添加通知失败", e);
-            return false;
+            return -1;
         }
     }
     
@@ -860,6 +860,20 @@ public class DatabaseManager {
             return true;
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "标记通知为已读失败", e);
+            return false;
+        }
+    }
+    
+    // 标记单个通知为已读
+    public boolean markNotificationAsRead(int notificationId) {
+        String sql = "UPDATE notifications SET read = TRUE WHERE id = ?";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, notificationId);
+            pstmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "标记单个通知为已读失败", e);
             return false;
         }
     }
@@ -904,10 +918,10 @@ public class DatabaseManager {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
-                plugin.getLogger().info("数据库连接已关闭");
+                plugin.getLogger().info(I18n.get("database.closed"));
             }
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "关闭数据库连接失败", e);
+            plugin.getLogger().log(Level.SEVERE, I18n.get("database.close.failed"), e);
         }
     }
     

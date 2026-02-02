@@ -10,6 +10,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.playermarket.PlayerMarket;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.model.MarketItem;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,8 +33,8 @@ public class MarketGUI implements InventoryHolder {
 
     public MarketGUI(PlayerMarket plugin) {
         this.plugin = plugin;
-        this.marketGUITitle = plugin.getConfig().getString("market.title", "§6玩家市场");
-        this.holderInventory = Bukkit.createInventory(this, 27, "§6玩家市场");
+        this.marketGUITitle = plugin.getConfig().getString("market.title", I18n.get("market.title"));
+        this.holderInventory = Bukkit.createInventory(this, 27, I18n.get("market.title"));
     }
     
     public void openMarketGUI(Player player) {
@@ -41,7 +42,7 @@ public class MarketGUI implements InventoryHolder {
     }
     
     public void openMarketGUI(Player player, int page) {
-        Inventory inventory = createInventory();
+        Inventory inventory = createInventory(player);
         playerInventories.put(player.getUniqueId(), inventory);
         
         // 异步打开界面（确保在主线程）
@@ -54,8 +55,8 @@ public class MarketGUI implements InventoryHolder {
         openMarketGUI(player, 1);
     }
     
-    private Inventory createInventory() {
-        Inventory inventory = Bukkit.createInventory(this, 27, "§6玩家市场 - 主菜单");
+    private Inventory createInventory(Player player) {
+        Inventory inventory = Bukkit.createInventory(this, 27, I18n.get(player, "market.title") + " - " + I18n.get(player, "market.main_menu"));
 
         ItemStack blackPane = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta blackMeta = blackPane.getItemMeta();
@@ -68,31 +69,31 @@ public class MarketGUI implements InventoryHolder {
             inventory.setItem(i, blackPane);
         }
 
-        ItemStack buyMarketButton = createPageButton("§a§l购买市场", Material.EMERALD_BLOCK, "§7点击进入购买市场");
+        ItemStack buyMarketButton = createPageButton(I18n.get(player, "market.buy"), Material.EMERALD_BLOCK, I18n.get(player, "market.main.buy.lore"));
         inventory.setItem(10, buyMarketButton);
 
-        ItemStack sellMarketButton = createPageButton("§b§l求购市场", Material.DIAMOND_BLOCK, "§7点击进入求购市场");
+        ItemStack sellMarketButton = createPageButton(I18n.get(player, "market.sell"), Material.DIAMOND_BLOCK, I18n.get(player, "market.main.sell.lore"));
         inventory.setItem(12, sellMarketButton);
 
-        ItemStack myListingsButton = createPageButton("§e§l我的上架", Material.CHEST, "§7点击查看我的上架物品");
+        ItemStack myListingsButton = createPageButton(I18n.get(player, "market.mylistings"), Material.CHEST, I18n.get(player, "market.main.mylistings.lore"));
         inventory.setItem(14, myListingsButton);
 
-        ItemStack myBuyOrdersButton = createPageButton("§e§l我的收购", Material.CHEST, "§7点击查看我的收购订单");
+        ItemStack myBuyOrdersButton = createPageButton(I18n.get(player, "market.mybuys"), Material.CHEST, I18n.get(player, "market.main.mybuys.lore"));
         inventory.setItem(16, myBuyOrdersButton);
 
-        ItemStack warehouseButton = createPageButton("§e§l我的仓库", Material.ENDER_CHEST, "§7点击查看我的仓库");
+        ItemStack warehouseButton = createPageButton(I18n.get(player, "market.warehouse"), Material.ENDER_CHEST, I18n.get(player, "market.main.warehouse.lore"));
         inventory.setItem(22, warehouseButton);
 
         ItemStack helpBook = new ItemStack(Material.WRITTEN_BOOK);
         ItemMeta helpMeta = helpBook.getItemMeta();
         if (helpMeta != null) {
-            helpMeta.setDisplayName("§6§l玩家市场帮助");
+            helpMeta.setDisplayName(I18n.get(player, "market.main.help.title"));
             List<String> lore = new ArrayList<>();
-            lore.add("§e/manuela <数量> <单价>");
-            lore.add("§7上架手中物品到购买市场");
+            lore.add(I18n.get(player, "market.main.help.manuela"));
+            lore.add(I18n.get(player, "market.main.help.manuela.desc"));
             lore.add("");
-            lore.add("§e/pur <数量> <单价>");
-            lore.add("§7发布收购订单（收购物品为手中物品）");
+            lore.add(I18n.get(player, "market.main.help.pur"));
+            lore.add(I18n.get(player, "market.main.help.pur.desc"));
             helpMeta.setLore(lore);
             helpBook.setItemMeta(helpMeta);
         }
@@ -113,7 +114,7 @@ public class MarketGUI implements InventoryHolder {
         // 获取玩家的Inventory
         Inventory inventory = playerInventories.get(player.getUniqueId());
         if (inventory == null) {
-            inventory = createInventory();
+            inventory = createInventory(player);
             playerInventories.put(player.getUniqueId(), inventory);
         }
         
@@ -133,11 +134,11 @@ public class MarketGUI implements InventoryHolder {
             if (meta != null) {
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add("§7数量: §e" + item.getAmount());
-                lore.add("§7价格: §e" + plugin.getEconomyManager().format(item.getPrice()));
-                lore.add("§7单价: §e" + plugin.getEconomyManager().format(item.getPrice() / item.getAmount()) + " / 个");
+                lore.add(I18n.get(player, "market.item.amount", item.getAmount()));
+                lore.add(I18n.get(player, "market.item.total_price", plugin.getEconomyManager().format(item.getPrice())));
+                lore.add(I18n.get(player, "market.item.unit_price", plugin.getEconomyManager().format(item.getPrice() / item.getAmount())));
                 lore.add("");
-                lore.add("§e点击查看详情");
+                lore.add(I18n.get(player, "market.item.click_detail"));
                 meta.setLore(lore);
                 itemStack.setItemMeta(meta);
             }
@@ -164,29 +165,29 @@ public class MarketGUI implements InventoryHolder {
         // 获取玩家的Inventory
         Inventory inventory = playerInventories.get(player.getUniqueId());
         if (inventory == null) {
-            inventory = createInventory();
+            inventory = createInventory(player);
             playerInventories.put(player.getUniqueId(), inventory);
         }
         
         // 上一页按钮
         if (currentPage > 1) {
-            ItemStack prevButton = createPageButton("§c§l上一页", Material.ARROW, "§7点击返回第 " + (currentPage - 1) + " 页");
+            ItemStack prevButton = createPageButton(I18n.get(player, "gui.page.previous"), Material.ARROW, I18n.get(player, "gui.page.previous.lore", currentPage - 1));
             inventory.setItem(45, prevButton);
         } else {
             inventory.setItem(45, blackPane);
         }
         
         // 我的上架按钮
-        ItemStack myListingsButton = createPageButton("§e§l我的上架", Material.CHEST, "§7点击查看我的上架物品");
+        ItemStack myListingsButton = createPageButton(I18n.get(player, "market.mylistings"), Material.CHEST, I18n.get(player, "market.main.mylistings.lore"));
         inventory.setItem(46, myListingsButton);
         
         // 当前页显示
-        ItemStack pageIndicator = createPageIndicator(currentPage, totalPages);
+        ItemStack pageIndicator = createPageIndicator(player, currentPage, totalPages);
         inventory.setItem(49, pageIndicator);
         
         // 下一页按钮
         if (currentPage < totalPages) {
-            ItemStack nextButton = createPageButton("§a§l下一页", Material.ARROW, "§7点击前往第 " + (currentPage + 1) + " 页");
+            ItemStack nextButton = createPageButton(I18n.get(player, "gui.page.next"), Material.ARROW, I18n.get(player, "gui.page.next.lore", currentPage + 1));
             inventory.setItem(53, nextButton);
         } else {
             inventory.setItem(53, blackPane);
@@ -214,17 +215,17 @@ public class MarketGUI implements InventoryHolder {
         return button;
     }
     
-    private ItemStack createPageIndicator(int currentPage, int totalPages) {
+    private ItemStack createPageIndicator(Player player, int currentPage, int totalPages) {
         ItemStack indicator = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = indicator.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§6§l第 " + currentPage + " 页");
+            meta.setDisplayName(I18n.get(player, "gui.page.indicator.title", currentPage));
             
             List<String> lore = new ArrayList<>();
-            lore.add("§7共 " + totalPages + " 页");
+            lore.add(I18n.get(player, "gui.page.indicator.total", totalPages));
             lore.add("");
-            lore.add("§7点击刷新");
+            lore.add(I18n.get(player, "gui.page.indicator.refresh"));
             meta.setLore(lore);
             
             indicator.setItemMeta(meta);

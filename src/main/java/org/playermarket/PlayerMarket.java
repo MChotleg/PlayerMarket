@@ -11,6 +11,7 @@ import org.playermarket.gui.MarketGUI;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.playermarket.economy.EconomyManager;
 import org.playermarket.database.DatabaseManager;
+import org.playermarket.utils.I18n;
 
 public class PlayerMarket extends JavaPlugin {
     private MarketListener marketListener;
@@ -25,41 +26,36 @@ public class PlayerMarket extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        getLogger().info("§a[PlayerMarket] 插件启动中...");
+        getLogger().info(I18n.get("plugin.starting"));
 
         try {
-            // 1. 先加载配置
             initConfig();
 
-            // 2. 初始化经济系统
+            I18n.initialize(this);
+
             economyManager = new EconomyManager(this);
 
-            // 3. 初始化市场GUI
             marketGUI = new MarketGUI(this);
 
-            // 4. 初始化数据库（必须在命令之前）
             initDatabase();
 
-            // 5. 初始化监听器
             initListeners();
 
-            // 6. 创建命令执行器并注册
             marketCommandExecutor = new MarketCommand(this);
             sellCommandExecutor = new SellCommand(this);
             purCommandExecutor = new PurCommand(this);
             registerCommandSync();
 
-            // 7. 检查经济系统状态
             if (economyManager.isEconomyEnabled()) {
-                getLogger().info("经济系统已连接: " + economyManager.getProviderName());
+                getLogger().info(I18n.get("plugin.economy.connected", economyManager.getProviderName()));
             } else {
-                getLogger().warning("经济系统不可用，市场交易功能将受限");
+                getLogger().warning(I18n.get("plugin.economy.unavailable"));
             }
 
-            getLogger().info("玩家市场系统准备就绪!");
+            getLogger().info(I18n.get("plugin.ready"));
 
         } catch (Exception e) {
-            getLogger().severe("插件启动失败: " + e.getMessage());
+            getLogger().severe(I18n.get("plugin.startup.failed", e.getMessage()));
             e.printStackTrace();
             getServer().getPluginManager().disablePlugin(this);
         }
@@ -70,93 +66,58 @@ public class PlayerMarket extends JavaPlugin {
      */
     private void registerCommandSync() {
         try {
-            // 注册 playermarket 命令
             PluginCommand marketCommand = getCommand("playermarket");
             if (marketCommand != null) {
                 marketCommand.setExecutor(marketCommandExecutor);
                 marketCommand.setTabCompleter(marketCommandExecutor);
-                getLogger().info("命令 /playermarket 已成功注册");
+                getLogger().info(I18n.get("plugin.command.registered", "/playermarket"));
             } else {
-                getLogger().severe("无法找到命令：playermarket，请检查 plugin.yml");
+                getLogger().severe(I18n.get("plugin.command.notfound", "playermarket"));
             }
             
-            // 注册 manuela 命令
             PluginCommand sellCommand = getCommand("manuela");
             if (sellCommand != null) {
                 sellCommand.setExecutor(sellCommandExecutor);
-                getLogger().info("命令 /manuela 已成功注册");
+                getLogger().info(I18n.get("plugin.command.registered", "/manuela"));
             } else {
-                getLogger().severe("无法找到命令：manuela，请检查 plugin.yml");
+                getLogger().severe(I18n.get("plugin.command.notfound", "manuela"));
             }
             
-            // 注册 pur 命令
             PluginCommand purCommand = getCommand("pur");
             if (purCommand != null) {
                 purCommand.setExecutor(purCommandExecutor);
-                getLogger().info("命令 /pur 已成功注册");
+                getLogger().info(I18n.get("plugin.command.registered", "/pur"));
             } else {
-                getLogger().severe("无法找到命令：pur，请检查 plugin.yml");
+                getLogger().severe(I18n.get("plugin.command.notfound", "pur"));
             }
         } catch (Exception e) {
-            getLogger().severe("命令注册失败: " + e.getMessage());
+            getLogger().severe(I18n.get("plugin.command.failed", e.getMessage()));
             e.printStackTrace();
         }
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("插件正在关闭...");
+        getLogger().info(I18n.get("plugin.shutdown"));
 
-        // 0. 关闭所有玩家的自定义GUI界面
         closeAllPlayerGUIs();
 
-        // 1. 清理命令（同步执行）
-        cleanupCommands();
-
-        // 2. 清理事件监听器
         cleanupListeners();
 
-        // 4. 清理静态实例
         instance = null;
 
-        // 5. 清理数据库连接
         if (databaseManager != null) {
             databaseManager.closeConnection();
             databaseManager = null;
         }
 
-        // 7. 清理其他资源
         economyManager = null;
         marketGUI = null;
         marketCommandExecutor = null;
         sellCommandExecutor = null;
         purCommandExecutor = null;
 
-        getLogger().info("§c[PlayerMarket] 插件已完全清理");
-    }
-
-    /**
-     * 清理命令
-     */
-    private void cleanupCommands() {
-        try {
-            // 注销 playermarket 命令
-            PluginCommand marketCommand = getCommand("playermarket");
-            if (marketCommand != null) {
-                marketCommand.setExecutor(null);
-                marketCommand.setTabCompleter(null);
-                getLogger().info("命令 /playermarket 已注销");
-            }
-            
-            // 注销 manuela 命令
-            PluginCommand sellCommand = getCommand("manuela");
-            if (sellCommand != null) {
-                sellCommand.setExecutor(null);
-                getLogger().info("命令 /manuela 已注销");
-            }
-        } catch (Exception e) {
-            getLogger().warning("命令注销时发生错误: " + e.getMessage());
-        }
+        getLogger().info(I18n.get("plugin.cleaned"));
     }
 
     /**
@@ -181,37 +142,33 @@ public class PlayerMarket extends JavaPlugin {
                     }
                 }
             });
-            getLogger().info("已关闭所有玩家的自定义GUI界面");
+            getLogger().info(I18n.get("plugin.guis.closed"));
         }
     }
     
-    /**
-     * 清理事件监听器
-     */
     private void cleanupListeners() {
         if (marketListener != null) {
             HandlerList.unregisterAll(marketListener);
             marketListener = null;
-            getLogger().info("事件监听器已注销");
+            getLogger().info(I18n.get("plugin.listeners.unregistered"));
         }
     }
 
     private void initConfig() {
         saveDefaultConfig();
         reloadConfig();
-        getLogger().info("配置文件已加载");
+        getLogger().info(I18n.get("plugin.config.loaded"));
     }
 
     private void initListeners() {
         marketListener = new MarketListener(this);
         getServer().getPluginManager().registerEvents(marketListener, this);
-        getLogger().info("事件监听器已注册");
+        getLogger().info(I18n.get("plugin.listeners.registered"));
     }
 
     private void initDatabase() {
-        // 初始化数据库连接
         databaseManager = new DatabaseManager(this);
-        getLogger().info("数据库系统已初始化");
+        getLogger().info(I18n.get("plugin.database.initialized"));
     }
 
     public static PlayerMarket getInstance() {

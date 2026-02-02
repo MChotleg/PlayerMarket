@@ -11,6 +11,7 @@ import org.playermarket.PlayerMarket;
 import org.playermarket.model.BuyOrder;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.economy.EconomyManager;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +66,7 @@ public class MyBuyOrdersGUI implements InventoryHolder {
     
     private void createInventory() {
         int totalPages = (buyOrders.size() + itemsPerPage - 1) / itemsPerPage;
-        inventory = Bukkit.createInventory(this, 54, "§6我的收购订单 - 第 " + currentPage + " 页");
+        inventory = Bukkit.createInventory(this, 54, I18n.get(player, "gui.page.title", I18n.get(player, "market.mybuys"), currentPage));
         
         // 填充收购订单
         int startIndex = (currentPage - 1) * itemsPerPage;
@@ -87,23 +88,23 @@ public class MyBuyOrdersGUI implements InventoryHolder {
         
         // 上一页按钮
         if (currentPage > 1) {
-            ItemStack prevButton = createPageButton("§c§l上一页", Material.ARROW, "§7点击返回第 " + (currentPage - 1) + " 页");
+            ItemStack prevButton = createPageButton(I18n.get(player, "gui.page.previous"), Material.ARROW, I18n.get(player, "gui.page.previous.lore", currentPage - 1));
             inventory.setItem(45, prevButton);
         } else {
             inventory.setItem(45, blackPane);
         }
         
         // 返回按钮
-        ItemStack backButton = createPageButton("§c§l返回", Material.BARRIER, "§7返回上一个界面");
+        ItemStack backButton = createPageButton(I18n.get(player, "gui.back"), Material.BARRIER, I18n.get(player, "gui.back.to.main"));
         inventory.setItem(46, backButton);
         
         // 当前页显示
-        ItemStack pageIndicator = createPageIndicator(currentPage, totalPages);
+        ItemStack pageIndicator = createPageIndicator(player, currentPage, totalPages);
         inventory.setItem(49, pageIndicator);
         
         // 下一页按钮
         if (currentPage < totalPages) {
-            ItemStack nextButton = createPageButton("§a§l下一页", Material.ARROW, "§7点击前往第 " + (currentPage + 1) + " 页");
+            ItemStack nextButton = createPageButton(I18n.get(player, "gui.page.next"), Material.ARROW, I18n.get(player, "gui.page.next.lore", currentPage + 1));
             inventory.setItem(53, nextButton);
         } else {
             inventory.setItem(53, blackPane);
@@ -125,34 +126,34 @@ public class MyBuyOrdersGUI implements InventoryHolder {
             // 保留原有的显示名称
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7收购数量: §e" + buyOrder.getAmount() + " 个");
-            lore.add("§7剩余数量: §e" + buyOrder.getRemainingAmount() + " 个");
-            lore.add("§7单价: §e" + economyManager.format(buyOrder.getUnitPrice()) + " / 个");
-            lore.add("§7总金额: §e" + economyManager.format(buyOrder.getTotalPrice()));
-            lore.add("§7剩余金额: §e" + economyManager.format(buyOrder.getRemainingTotalPrice()));
+            lore.add(I18n.get(player, "mybuyorders.amount", buyOrder.getAmount()));
+            lore.add(I18n.get(player, "mybuyorders.remaining_amount", buyOrder.getRemainingAmount()));
+            lore.add(I18n.get(player, "mybuyorders.unit_price", economyManager.format(buyOrder.getUnitPrice())));
+            lore.add(I18n.get(player, "mybuyorders.total_price", economyManager.format(buyOrder.getTotalPrice())));
+            lore.add(I18n.get(player, "mybuyorders.remaining_price", economyManager.format(buyOrder.getRemainingTotalPrice())));
             lore.add("");
             int acquiredAmount = buyOrder.getAmount() - buyOrder.getRemainingAmount();
             boolean isPartiallyFulfilled = acquiredAmount > 0 && !buyOrder.isFulfilled();
             
             if (buyOrder.isFulfilled()) {
                 // 已完成
-                lore.add("§7状态: §a已完成");
+                lore.add(I18n.get(player, "mybuyorders.status.completed"));
                 if (buyOrder.getSellerName() != null) {
-                    lore.add("§7卖家: §e" + buyOrder.getSellerName());
+                    lore.add(I18n.get(player, "mybuyorders.seller", buyOrder.getSellerName()));
                 }
-                lore.add("§a左键: 转移物品到仓库");
-                lore.add("§c右键: 删除订单");
+                lore.add(I18n.get(player, "mybuyorders.action.withdraw"));
+                lore.add(I18n.get(player, "mybuyorders.action.delete"));
             } else if (isPartiallyFulfilled) {
                 // 部分完成
-                lore.add("§7状态: §e部分完成");
-                lore.add("§7已收购: §e" + acquiredAmount + " 个");
+                lore.add(I18n.get(player, "mybuyorders.status.partial"));
+                lore.add(I18n.get(player, "mybuyorders.acquired", acquiredAmount));
                 lore.add("");
-                lore.add("§a左键: 转移已收购物品到仓库");
-                lore.add("§c右键: 取消剩余收购");
+                lore.add(I18n.get(player, "mybuyorders.action.withdraw_partial"));
+                lore.add(I18n.get(player, "mybuyorders.action.cancel_remaining"));
             } else {
                 // 未完成
-                lore.add("§a左键: 修改收购数量");
-                lore.add("§c右键: 取消收购订单");
+                lore.add(I18n.get(player, "mybuyorders.action.modify"));
+                lore.add(I18n.get(player, "mybuyorders.action.cancel"));
             }
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -176,18 +177,18 @@ public class MyBuyOrdersGUI implements InventoryHolder {
         return button;
     }
     
-    private ItemStack createPageIndicator(int currentPage, int totalPages) {
+    private ItemStack createPageIndicator(Player player, int currentPage, int totalPages) {
         ItemStack indicator = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = indicator.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§6§l当前页数");
+            meta.setDisplayName(I18n.get(player, "gui.page.indicator.current_pages"));
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7当前: §e" + currentPage);
-            lore.add("§7总页: §e" + totalPages);
+            lore.add(I18n.get(player, "gui.page.indicator.current", currentPage));
+            lore.add(I18n.get(player, "gui.page.indicator.total_pages", totalPages));
             lore.add("");
-            lore.add("§7点击刷新");
+            lore.add(I18n.get(player, "gui.page.indicator.refresh"));
             meta.setLore(lore);
             indicator.setItemMeta(meta);
         }

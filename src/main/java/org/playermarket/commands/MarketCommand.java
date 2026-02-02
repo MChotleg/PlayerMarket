@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.playermarket.PlayerMarket;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,7 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         // 检查是否为玩家
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§c只有玩家才能使用该命令");
+            sender.sendMessage(I18n.get("error.player_only"));
             return false;
         }
 
@@ -30,7 +31,7 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
 
         // 检查权限
         if (!player.hasPermission("playermarket.use")) {
-            player.sendMessage("§c你没有权限使用玩家市场");
+            player.sendMessage(I18n.get(player, "error.permission"));
             return false;
         }
 
@@ -47,6 +48,12 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
                     return handleReloadCommand(player, args);
                 case "help":
                     return handleHelpCommand(player, args);
+                case "lang":
+                case "language":
+                    return handleLanguageCommand(player, args);
+                case "defaultlang":
+                case "defaultlanguage":
+                    return handleDefaultLanguageCommand(player, args);
                 default:
                     // 默认打开市场
                     return openMarket(player);
@@ -61,19 +68,15 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
         try {
             // 检查经济系统
             if (!plugin.getEconomyManager().isEconomyEnabled()) {
-                player.sendMessage("§c经济系统不可用，无法打开市场");
+                player.sendMessage(I18n.get(player, "error.economy"));
                 return false;
             }
-
-            // 显示玩家余额
-            double balance = plugin.getEconomyManager().getBalance(player);
-            player.sendMessage("§a你的余额: " + plugin.getEconomyManager().format(balance));
 
             // 打开市场界面
             plugin.getMarketGUI().openMarketGUI(player);
             return true;
         } catch (Exception e) {
-            player.sendMessage("§c打开市场时发生错误: " + e.getMessage());
+            player.sendMessage(I18n.get(player, "error.market_open", e.getMessage()));
             plugin.getLogger().severe("打开市场GUI失败: " + e.getMessage());
             e.printStackTrace();
             return false;
@@ -82,51 +85,101 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
 
     private boolean handleDebugCommand(Player player, String[] args) {
         if (!player.hasPermission("playermarket.admin")) {
-            player.sendMessage("§c你没有权限执行此命令");
+            player.sendMessage(I18n.get(player, "error.permission"));
             return false;
         }
 
-        player.sendMessage("§6=== PlayerMarket 调试信息 ===");
-        player.sendMessage("§e经济系统状态: " +
-                (plugin.getEconomyManager().isEconomyEnabled() ? "§a已连接" : "§c未连接"));
+        player.sendMessage(I18n.get(player, "debug.title"));
+        player.sendMessage(I18n.get(player, "debug.economy_status") +
+                (plugin.getEconomyManager().isEconomyEnabled() ? I18n.get(player, "debug.connected") : I18n.get(player, "debug.disconnected")));
 
         if (plugin.getEconomyManager().isEconomyEnabled()) {
             double balance = plugin.getEconomyManager().getBalance(player);
-            player.sendMessage("§e你的余额: " + plugin.getEconomyManager().format(balance));
-            player.sendMessage("§e经济提供者: " + plugin.getEconomyManager().getProviderName());
+            player.sendMessage(I18n.get(player, "debug.balance", plugin.getEconomyManager().format(balance)));
+            player.sendMessage(I18n.get(player, "debug.provider", plugin.getEconomyManager().getProviderName()));
         }
 
-        player.sendMessage("§e服务器线程: " +
-                (Bukkit.isPrimaryThread() ? "§a主线程" : "§c异步线程"));
+        player.sendMessage(I18n.get(player, "debug.thread") + (Bukkit.isPrimaryThread() ? I18n.get(player, "debug.main_thread") : I18n.get(player, "debug.async_thread")));
         return true;
     }
 
     private boolean handleBalanceCommand(Player player, String[] args) {
         double balance = plugin.getEconomyManager().getBalance(player);
-        player.sendMessage("§a你的余额: " + plugin.getEconomyManager().format(balance));
+        player.sendMessage(I18n.get(player, "command.balance", plugin.getEconomyManager().format(balance)));
         return true;
     }
 
     private boolean handleReloadCommand(Player player, String[] args) {
         if (!player.hasPermission("playermarket.admin")) {
-            player.sendMessage("§c你没有权限重新加载配置");
+            player.sendMessage(I18n.get(player, "error.permission"));
             return false;
         }
 
         plugin.reloadConfig();
-        player.sendMessage("§a配置文件已重新加载");
+        I18n.reload();
+        player.sendMessage(I18n.get(player, "command.reload"));
         return true;
     }
 
     private boolean handleHelpCommand(Player player, String[] args) {
-        player.sendMessage("§6=== PlayerMarket 命令帮助 ===");
-        player.sendMessage("§a/playermarket §7- 打开玩家市场");
-        player.sendMessage("§a/playermarket balance §7- 查看余额");
+        player.sendMessage(I18n.get(player, "command.help.title"));
+        player.sendMessage(I18n.get(player, "command.help.open"));
+        player.sendMessage(I18n.get(player, "command.help.balance"));
         if (player.hasPermission("playermarket.admin")) {
-            player.sendMessage("§a/playermarket debug §7- 调试信息");
-            player.sendMessage("§a/playermarket reload §7- 重新加载配置");
+            player.sendMessage(I18n.get(player, "command.help.debug"));
+            player.sendMessage(I18n.get(player, "command.help.reload"));
+            player.sendMessage(I18n.get(player, "command.help.defaultlang"));
         }
-        player.sendMessage("§a/playermarket help §7- 显示此帮助");
+        player.sendMessage(I18n.get(player, "command.help.lang"));
+        player.sendMessage(I18n.get(player, "command.help.help"));
+        return true;
+    }
+
+    private boolean handleLanguageCommand(Player player, String[] args) {
+        if (args.length < 2) {
+            player.sendMessage(I18n.get(player, "error.lang.usage"));
+            return false;
+        }
+
+        String lang = args[1].toLowerCase();
+        if (lang.equals("zh_cn") || lang.equals("en_us")) {
+            String normalizedLang = lang.equals("zh_cn") ? "zh_CN" : "en_US";
+            I18n.setPlayerLanguage(player, normalizedLang);
+            player.sendMessage("§a你的语言已设置为: " + (normalizedLang.equals("zh_CN") ? "中文" : "English"));
+        } else if (lang.equals("auto")) {
+            // 重置为默认模式（使用服务器默认语言）
+            I18n.resetPlayerLanguage(player);
+            String defaultLang = plugin.getConfig().getString("language.default", "zh_CN");
+            String langDisplay = defaultLang.equals("zh_CN") ? "中文" : "English";
+            player.sendMessage("§a语言已设置为: 自动（使用服务器默认语言: " + langDisplay + "）");
+        } else {
+            player.sendMessage(I18n.get(player, "error.lang.invalid"));
+        }
+        return true;
+    }
+
+    private boolean handleDefaultLanguageCommand(Player player, String[] args) {
+        // 检查管理员权限
+        if (!player.hasPermission("playermarket.admin")) {
+            player.sendMessage(I18n.get(player, "error.permission"));
+            return false;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage(I18n.get(player, "error.defaultlang.usage"));
+            return false;
+        }
+
+        String lang = args[1].toLowerCase();
+        if (lang.equals("zh_cn") || lang.equals("en_us")) {
+            String normalizedLang = lang.equals("zh_cn") ? "zh_CN" : "en_US";
+            plugin.getConfig().set("language.default", normalizedLang);
+            plugin.saveConfig();
+            I18n.reload();
+            player.sendMessage("§a服务器默认语言已设置为: " + (normalizedLang.equals("zh_CN") ? "中文" : "English"));
+        } else {
+            player.sendMessage(I18n.get(player, "error.defaultlang.invalid"));
+        }
         return true;
     }
 
@@ -140,15 +193,44 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
 
             commands.add("help");
             commands.add("balance");
+            commands.add("lang");
+            commands.add("language");
 
             if (sender.hasPermission("playermarket.admin")) {
                 commands.add("debug");
                 commands.add("reload");
+                commands.add("defaultlang");
+                commands.add("defaultlanguage");
             }
 
             for (String cmd : commands) {
                 if (cmd.startsWith(partial)) {
                     completions.add(cmd);
+                }
+            }
+        } else if (args.length == 2) {
+            // 为语言相关命令添加补全
+            String subCommand = args[0].toLowerCase();
+            if (subCommand.equals("lang") || subCommand.equals("language")) {
+                List<String> languages = new ArrayList<>();
+                languages.add("zh_CN");
+                languages.add("en_US");
+                languages.add("auto");
+                String partial = args[1].toLowerCase();
+                for (String lang : languages) {
+                    if (lang.toLowerCase().startsWith(partial)) {
+                        completions.add(lang);
+                    }
+                }
+            } else if ((subCommand.equals("defaultlang") || subCommand.equals("defaultlanguage")) && sender.hasPermission("playermarket.admin")) {
+                List<String> languages = new ArrayList<>();
+                languages.add("zh_CN");
+                languages.add("en_US");
+                String partial = args[1].toLowerCase();
+                for (String lang : languages) {
+                    if (lang.toLowerCase().startsWith(partial)) {
+                        completions.add(lang);
+                    }
                 }
             }
         }

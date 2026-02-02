@@ -10,6 +10,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.playermarket.PlayerMarket;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.model.MarketItem;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,7 +33,7 @@ public class MyListingsGUI implements InventoryHolder {
     public MyListingsGUI(PlayerMarket plugin, Player player) {
         this.plugin = plugin;
         this.player = player;
-        this.title = "§6我的上架物品";
+        this.title = "§6" + org.playermarket.utils.I18n.get(player, "market.mylistings");
         this.inventory = Bukkit.createInventory(this, 54, title);
         
         initializeGUI();
@@ -69,13 +70,13 @@ public class MyListingsGUI implements InventoryHolder {
                     if (meta != null) {
                         List<String> lore = new ArrayList<>();
                         lore.add("");
-                        lore.add("§7数量: §e" + item.getAmount() + " 个");
-                        lore.add("§7单价: §e" + plugin.getEconomyManager().format(item.getUnitPrice()) + " / 个");
-                        lore.add("§7总价: §e" + plugin.getEconomyManager().format(item.getPrice()));
-                        lore.add("§7上架时间: §e" + formatTime(item.getListTime()));
-                        lore.add("§7商品ID: §e" + item.getId());
+                        lore.add(I18n.get(player, "marketitems.amount", item.getAmount()));
+                        lore.add(I18n.get(player, "marketitems.unit_price", plugin.getEconomyManager().format(item.getUnitPrice())));
+                        lore.add(I18n.get(player, "marketitems.total_price", plugin.getEconomyManager().format(item.getPrice())));
+                        lore.add(I18n.get(player, "marketitems.list_time", formatTime(item.getListTime())));
+                        lore.add(I18n.get(player, "marketitems.id", item.getId()));
                         lore.add("");
-                        lore.add("§e点击管理此商品");
+                        lore.add(org.playermarket.utils.I18n.get(player, "mylistings.manage"));
                         meta.setLore(lore);
                         itemStack.setItemMeta(meta);
                     }
@@ -112,15 +113,15 @@ public class MyListingsGUI implements InventoryHolder {
         int totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
         
         if (currentPage > 1) {
-            ItemStack prevButton = createPageButton("§c§l上一页", Material.ARROW, "§7点击返回第 " + (currentPage - 1) + " 页");
+            ItemStack prevButton = createPageButton(I18n.get(player, "gui.page.previous"), Material.ARROW, I18n.get(player, "gui.page.previous.lore", currentPage - 1));
             inventory.setItem(45, prevButton);
         }
         
-        ItemStack pageIndicator = createPageIndicator(currentPage, totalPages, totalItems);
+        ItemStack pageIndicator = createPageIndicator(player, currentPage, totalPages, totalItems);
         inventory.setItem(49, pageIndicator);
         
         if (currentPage < totalPages) {
-            ItemStack nextButton = createPageButton("§a§l下一页", Material.ARROW, "§7点击前往第 " + (currentPage + 1) + " 页");
+            ItemStack nextButton = createPageButton(I18n.get(player, "gui.page.next"), Material.ARROW, I18n.get(player, "gui.page.next.lore", currentPage + 1));
             inventory.setItem(53, nextButton);
         }
     }
@@ -129,10 +130,10 @@ public class MyListingsGUI implements InventoryHolder {
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
         if (backMeta != null) {
-            backMeta.setDisplayName("§c§l返回主菜单");
+            backMeta.setDisplayName(org.playermarket.utils.I18n.get(player, "mylistings.back"));
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7点击返回主菜单");
+            lore.add(org.playermarket.utils.I18n.get(player, "mylistings.back.lore"));
             backMeta.setLore(lore);
             backButton.setItemMeta(backMeta);
         }
@@ -152,17 +153,17 @@ public class MyListingsGUI implements InventoryHolder {
         return button;
     }
     
-    private ItemStack createPageIndicator(int currentPage, int totalPages, int totalItems) {
+    private ItemStack createPageIndicator(Player player, int currentPage, int totalPages, int totalItems) {
         ItemStack indicator = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = indicator.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName("§6§l第 " + currentPage + " 页");
+            meta.setDisplayName(I18n.get(player, "gui.page.indicator.title", currentPage));
             List<String> lore = new ArrayList<>();
-            lore.add("§7共 " + totalPages + " 页");
+            lore.add(I18n.get(player, "gui.page.indicator.total", totalPages));
             lore.add("");
-            lore.add("§7上架商品: §e" + totalItems + " 个");
+            lore.add(I18n.get(player, "gui.page.indicator.listings", totalItems));
             lore.add("");
-            lore.add("§7点击刷新");
+            lore.add(I18n.get(player, "gui.page.indicator.refresh"));
             meta.setLore(lore);
             indicator.setItemMeta(meta);
         }
@@ -176,13 +177,13 @@ public class MyListingsGUI implements InventoryHolder {
         long days = hours / 24;
         
         if (days > 0) {
-            return days + " 天前";
+            return I18n.get(player, "time.days_ago", days);
         } else if (hours > 0) {
-            return hours + " 小时前";
+            return I18n.get(player, "time.hours_ago", hours);
         } else if (minutes > 0) {
-            return minutes + " 分钟前";
+            return I18n.get(player, "time.minutes_ago", minutes);
         } else {
-            return "刚刚";
+            return I18n.get(player, "time.just_now");
         }
     }
     

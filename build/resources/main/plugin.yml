@@ -14,7 +14,7 @@ commands:
   playermarket:
     description: 打开玩家市场
     aliases: [market, pm, plm]
-    usage: /<command> [help|balance|debug|reload]
+    usage: /<command> [help|balance|lang|language|defaultlang|defaultlanguage|debug|reload]
     permission: playermarket.use
     permission-message: "§c你没有权限使用此命令"
   

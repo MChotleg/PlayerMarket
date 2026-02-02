@@ -11,6 +11,7 @@ import org.playermarket.PlayerMarket;
 import org.playermarket.model.BuyOrder;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.economy.EconomyManager;
+import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,9 @@ public class BuyOrderDetailGUI implements InventoryHolder {
     private static final int DEFAULT_MULTIPLIER = 1;
     
     public BuyOrderDetailGUI(PlayerMarket plugin, BuyOrder buyOrder, Player player) {
+        if (plugin == null || buyOrder == null || player == null) {
+            throw new IllegalArgumentException("BuyOrderDetailGUI: plugin, buyOrder and player must not be null");
+        }
         this.plugin = plugin;
         this.buyOrder = buyOrder;
         this.player = player;
@@ -43,7 +47,7 @@ public class BuyOrderDetailGUI implements InventoryHolder {
     }
     
     private void createInventory() {
-        inventory = Bukkit.createInventory(this, 54, "§6收购订单详情");
+        inventory = Bukkit.createInventory(this, 54, I18n.get(player, "buy_order_detail.title"));
         
         // 显示收购订单信息
         ItemStack orderInfo = createOrderInfoItem();
@@ -76,11 +80,11 @@ public class BuyOrderDetailGUI implements InventoryHolder {
         ItemMeta backMeta = backButton.getItemMeta();
 
         if (backMeta != null) {
-            backMeta.setDisplayName("§c§l返回");
+            backMeta.setDisplayName(I18n.get(player, "gui.back"));
 
             List<String> backLore = new ArrayList<>();
             backLore.add("");
-            backLore.add("§7点击返回求购市场");
+            backLore.add(I18n.get(player, "buy_order_detail.back_to_buy_market"));
             backMeta.setLore(backLore);
 
             backButton.setItemMeta(backMeta);
@@ -91,43 +95,46 @@ public class BuyOrderDetailGUI implements InventoryHolder {
     
     private ItemStack createOrderInfoItem() {
         ItemStack item = buyOrder.getItemStack();
+        if (item == null) {
+            item = new ItemStack(org.bukkit.Material.BARRIER);
+        }
         ItemMeta meta = item.getItemMeta();
-        
+
         if (meta != null) {
-            // 保留原有的显示名称
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7收购人: §e" + buyOrder.getBuyerName());
-            lore.add("§7剩余数量: §e" + buyOrder.getRemainingAmount() + " / " + buyOrder.getAmount() + " 个");
-            lore.add("§7单价: §e" + economyManager.format(buyOrder.getUnitPrice()) + " / 个");
-            lore.add("§7剩余金额: §e" + economyManager.format(buyOrder.getRemainingTotalPrice()));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.buyer"), buyOrder.getBuyerName()));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.amount_remaining"), buyOrder.getRemainingAmount(), buyOrder.getAmount()));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.price_unit"), economyManager.format(buyOrder.getUnitPrice())));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.total_remaining"), economyManager.format(buyOrder.getRemainingTotalPrice())));
             lore.add("");
-            lore.add("§7订单ID: §e" + buyOrder.getId());
-            lore.add("§7创建时间: §e" + formatTime(buyOrder.getCreateTime()));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.order_id"), buyOrder.getId()));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.create_time"), formatTime(buyOrder.getCreateTime())));
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
-        
+
         return item;
     }
     
     private void addInfoButtons() {
-        // 收购人信息（槽位 11）
         ItemStack buyerInfoButton = createInfoButton(
-            "§6§l收购人信息",
+            I18n.get(player, "buy_order_detail.buyer_info_title"),
             Material.PLAYER_HEAD,
-            "§7收购人: §e" + buyOrder.getBuyerName(),
-            "§7订单ID: §e" + buyOrder.getId(),
-            "§7创建时间: §e" + formatTime(buyOrder.getCreateTime())
+            String.format(I18n.get(player, "buy_order_detail.buyer"), buyOrder.getBuyerName()),
+            String.format(I18n.get(player, "buy_order_detail.order_id"), buyOrder.getId()),
+            String.format(I18n.get(player, "buy_order_detail.create_time"), formatTime(buyOrder.getCreateTime()))
         );
         inventory.setItem(11, buyerInfoButton);
-        
-        // 物品信息（槽位 15）
+
+        ItemStack itemStack = buyOrder.getItemStack();
+        String itemName = itemStack != null ? getItemDisplayName(itemStack) : "未知物品";
+
         ItemStack itemInfoButton = createInfoButton(
-            "§6§l物品信息",
+            I18n.get(player, "buy_order_detail.item_info_title"),
             Material.CHEST,
-            "§7物品: §e" + getItemDisplayName(buyOrder.getItemStack()),
-            "§7单价: §e" + economyManager.format(buyOrder.getUnitPrice()) + " / 个"
+            String.format(I18n.get(player, "buy_order_detail.item_name"), itemName),
+            String.format(I18n.get(player, "buy_order_detail.price_unit"), economyManager.format(buyOrder.getUnitPrice()))
         );
         inventory.setItem(15, itemInfoButton);
     }
@@ -143,37 +150,37 @@ public class BuyOrderDetailGUI implements InventoryHolder {
         
         // 增加数量按钮（槽位 30）
         ItemStack increaseButton = createControlButton(
-            "§a§l增加数量",
+            I18n.get(player, "buy_order_detail.increase_amount"),
             Material.GREEN_STAINED_GLASS_PANE,
-            "§7点击增加出售数量",
-            "§7当前基数: §e" + playerMultiplier.get(player.getUniqueId())
+            I18n.get(player, "buy_order_detail.click_to_increase"),
+            String.format(I18n.get(player, "buy_order_detail.current_multiplier"), playerMultiplier.get(player.getUniqueId()))
         );
         inventory.setItem(30, increaseButton);
         
         // 减少数量按钮（槽位 32）
         ItemStack decreaseButton = createControlButton(
-            "§c§l减少数量",
+            I18n.get(player, "buy_order_detail.decrease_amount"),
             Material.RED_STAINED_GLASS_PANE,
-            "§7点击减少出售数量",
-            "§7当前基数: §e" + playerMultiplier.get(player.getUniqueId())
+            I18n.get(player, "buy_order_detail.click_to_decrease"),
+            String.format(I18n.get(player, "buy_order_detail.current_multiplier"), playerMultiplier.get(player.getUniqueId()))
         );
         inventory.setItem(32, decreaseButton);
         
         // 增加基数按钮（槽位 39）
         ItemStack increaseMultiplierButton = createControlButton(
-            "§a§l×10",
+            I18n.get(player, "buy_order_detail.multiply_10"),
             Material.LIME_WOOL,
-            "§7点击将基数乘以10",
-            "§7当前基数: §e" + playerMultiplier.get(player.getUniqueId())
+            I18n.get(player, "buy_order_detail.click_multiply_10"),
+            String.format(I18n.get(player, "buy_order_detail.current_multiplier"), playerMultiplier.get(player.getUniqueId()))
         );
         inventory.setItem(39, increaseMultiplierButton);
         
         // 减少基数按钮（槽位 41）
         ItemStack decreaseMultiplierButton = createControlButton(
-            "§c§l÷10",
+            I18n.get(player, "buy_order_detail.divide_10"),
             Material.RED_WOOL,
-            "§7点击将基数除以10",
-            "§7当前基数: §e" + playerMultiplier.get(player.getUniqueId())
+            I18n.get(player, "buy_order_detail.click_divide_10"),
+            String.format(I18n.get(player, "buy_order_detail.current_multiplier"), playerMultiplier.get(player.getUniqueId()))
         );
         inventory.setItem(41, decreaseMultiplierButton);
     }
@@ -225,14 +232,14 @@ public class BuyOrderDetailGUI implements InventoryHolder {
             double totalIncome = currentAmount * buyOrder.getUnitPrice();
             int maxAmount = Math.min(buyOrder.getRemainingAmount(), getPlayerItemAmount());
             
-            meta.setDisplayName("§e§l出售数量");
+            meta.setDisplayName(I18n.get(player, "buy_order_detail.sell_amount_title"));
             
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7当前: §e" + currentAmount + " 个");
-            lore.add("§7最大: §e" + maxAmount + " 个");
+            lore.add(String.format(I18n.get(player, "buy_order_detail.amount_current"), currentAmount));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.amount_max"), maxAmount));
             lore.add("");
-            lore.add("§7收入: §e" + economyManager.format(totalIncome));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.income"), economyManager.format(totalIncome)));
             meta.setLore(lore);
             
             display.setItemMeta(meta);
@@ -244,32 +251,29 @@ public class BuyOrderDetailGUI implements InventoryHolder {
     private ItemStack createMultiplierDisplay() {
         ItemStack display = new ItemStack(Material.COMPASS);
         ItemMeta meta = display.getItemMeta();
-        
+
         if (meta != null) {
             int multiplier = playerMultiplier.get(player.getUniqueId());
-            
-            meta.setDisplayName("§b§l数量倍数");
-            
+
+            meta.setDisplayName(I18n.get(player, "buy_order_detail.multiplier_title"));
+
             List<String> lore = new ArrayList<>();
             lore.add("");
-            lore.add("§7当前: §e" + multiplier + "x");
+            lore.add(String.format(I18n.get(player, "buy_order_detail.current_multiplier"), multiplier));
             lore.add("");
-            lore.add("§7每次增加/减少的数量");
+            lore.add(I18n.get(player, "buy_order_detail.multiplier_desc"));
+            lore.add("");
+            lore.add(I18n.get(player, "buy_order_detail.multiplier_adjust"));
             meta.setLore(lore);
-            
+
             display.setItemMeta(meta);
         }
-        
+
         return display;
     }
-    
+
     private String getItemDisplayName(ItemStack itemStack) {
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-            return itemStack.getItemMeta().getDisplayName();
-        } else {
-            String i18nName = itemStack.getI18NDisplayName();
-            return i18nName != null ? i18nName : itemStack.getType().name();
-        }
+        return I18n.getItemDisplayName(itemStack);
     }
     
     private void addSellButton() {
@@ -277,16 +281,16 @@ public class BuyOrderDetailGUI implements InventoryHolder {
         ItemMeta meta = sellButton.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§a§l确认出售");
+            meta.setDisplayName(I18n.get(player, "buy_order_detail.confirm_sell"));
             
             List<String> lore = new ArrayList<>();
             int sellAmount = playerSellAmounts.get(player.getUniqueId());
             double totalPrice = sellAmount * buyOrder.getUnitPrice();
             
             lore.add("");
-            lore.add("§7出售数量: §e" + sellAmount + " 个");
-            lore.add("§7单价: §e" + economyManager.format(buyOrder.getUnitPrice()) + " / 个");
-            lore.add("§7收入: §e" + economyManager.format(totalPrice));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.sell_amount"), sellAmount));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.price_unit"), economyManager.format(buyOrder.getUnitPrice())));
+            lore.add(String.format(I18n.get(player, "buy_order_detail.income"), economyManager.format(totalPrice)));
             meta.setLore(lore);
             
             sellButton.setItemMeta(meta);
@@ -296,12 +300,7 @@ public class BuyOrderDetailGUI implements InventoryHolder {
     }
     
     private String getDisplayName(ItemStack item) {
-        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-            return item.getItemMeta().getDisplayName();
-        } else {
-            String i18nName = item.getI18NDisplayName();
-            return i18nName != null ? i18nName : item.getType().name();
-        }
+        return I18n.getItemDisplayName(item);
     }
     
     private int getPlayerItemAmount() {
@@ -359,20 +358,11 @@ public class BuyOrderDetailGUI implements InventoryHolder {
     }
     
     private String formatTime(java.sql.Timestamp timestamp) {
-        long diff = System.currentTimeMillis() - timestamp.getTime();
-        long minutes = diff / (1000 * 60);
-        long hours = minutes / 60;
-        long days = hours / 24;
-        
-        if (days > 0) {
-            return days + " 天前";
-        } else if (hours > 0) {
-            return hours + " 小时前";
-        } else if (minutes > 0) {
-            return minutes + " 分钟前";
-        } else {
-            return "刚刚";
+        if (timestamp == null) {
+            return I18n.get(player, "time.just_now");
         }
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(I18n.get(player, "gui.date_format"));
+        return sdf.format(new java.util.Date(timestamp.getTime()));
     }
     
     public void open() {
@@ -403,10 +393,10 @@ public class BuyOrderDetailGUI implements InventoryHolder {
                 
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add("§7当前: §e" + amount + " 个");
-                lore.add("§7最大: §e" + maxAmount + " 个");
+                lore.add(String.format(I18n.get(player, "buy_order_detail.amount_current"), amount));
+                lore.add(String.format(I18n.get(player, "buy_order_detail.amount_max"), maxAmount));
                 lore.add("");
-                lore.add("§7收入: §e" + economyManager.format(totalIncome));
+                lore.add(String.format(I18n.get(player, "buy_order_detail.income"), economyManager.format(totalIncome)));
                 meta.setLore(lore);
                 amountDisplay.setItemMeta(meta);
                 inventory.setItem(31, amountDisplay);
@@ -420,9 +410,9 @@ public class BuyOrderDetailGUI implements InventoryHolder {
             if (meta != null) {
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add("§7当前: §e" + multiplier + "x");
+                lore.add(String.format(I18n.get(player, "buy_order_detail.current_multiplier"), multiplier));
                 lore.add("");
-                lore.add("§7每次增加/减少的数量");
+                lore.add(I18n.get(player, "buy_order_detail.multiplier_desc"));
                 meta.setLore(lore);
                 multiplierDisplay.setItemMeta(meta);
                 inventory.setItem(40, multiplierDisplay);
@@ -449,7 +439,7 @@ public class BuyOrderDetailGUI implements InventoryHolder {
             ItemMeta meta = item.getItemMeta();
             List<String> lore = meta.getLore();
             if (lore != null && lore.size() >= 2) {
-                lore.set(1, "§7当前基数: §e" + multiplier);
+                lore.set(1, String.format(I18n.get(player, "buy_order_detail.current_multiplier"), multiplier));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
                 inventory.setItem(slot, item);
