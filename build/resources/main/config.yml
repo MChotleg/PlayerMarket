@@ -11,6 +11,7 @@ market:
 # 经济系统设置
 economy:
   enabled: true
+  provider: "default"  # 经济提供者名称（当服务器有多个经济插件时指定），默认使用第一个可用提供者
   check-on-open: true  # 打开市场时检查经济系统
   display-balance: true  # 在GUI中显示余额
 

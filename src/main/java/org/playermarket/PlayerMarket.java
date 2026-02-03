@@ -6,7 +6,8 @@ import org.bukkit.event.HandlerList;
 import org.playermarket.commands.MarketCommand;
 import org.playermarket.commands.SellCommand;
 import org.playermarket.commands.PurCommand;
-import org.playermarket.listeners.MarketListener;
+import org.playermarket.listeners.InventoryClickListener;
+import org.playermarket.listeners.PlayerJoinListener;
 import org.playermarket.gui.MarketGUI;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.playermarket.economy.EconomyManager;
@@ -14,7 +15,8 @@ import org.playermarket.database.DatabaseManager;
 import org.playermarket.utils.I18n;
 
 public class PlayerMarket extends JavaPlugin {
-    private MarketListener marketListener;
+    private InventoryClickListener inventoryClickListener;
+    private PlayerJoinListener playerJoinListener;
     private static PlayerMarket instance;
     private MarketGUI marketGUI;
     private MarketCommand marketCommandExecutor;
@@ -124,7 +126,7 @@ public class PlayerMarket extends JavaPlugin {
      * 关闭所有玩家的自定义GUI界面
      */
     private void closeAllPlayerGUIs() {
-        if (marketListener != null) {
+        if (inventoryClickListener != null) {
             Bukkit.getOnlinePlayers().forEach(player -> {
                 if (player.getOpenInventory() != null) {
                     Object holder = player.getOpenInventory().getTopInventory().getHolder();
@@ -147,10 +149,14 @@ public class PlayerMarket extends JavaPlugin {
     }
     
     private void cleanupListeners() {
-        if (marketListener != null) {
-            HandlerList.unregisterAll(marketListener);
-            marketListener = null;
+        if (inventoryClickListener != null) {
+            HandlerList.unregisterAll(inventoryClickListener);
+            inventoryClickListener = null;
             getLogger().info(I18n.get("plugin.listeners.unregistered"));
+        }
+        if (playerJoinListener != null) {
+            HandlerList.unregisterAll(playerJoinListener);
+            playerJoinListener = null;
         }
     }
 
@@ -161,8 +167,10 @@ public class PlayerMarket extends JavaPlugin {
     }
 
     private void initListeners() {
-        marketListener = new MarketListener(this);
-        getServer().getPluginManager().registerEvents(marketListener, this);
+        inventoryClickListener = new InventoryClickListener(this);
+        playerJoinListener = new PlayerJoinListener(this);
+        getServer().getPluginManager().registerEvents(inventoryClickListener, this);
+        getServer().getPluginManager().registerEvents(playerJoinListener, this);
         getLogger().info(I18n.get("plugin.listeners.registered"));
     }
 

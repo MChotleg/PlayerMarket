@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(module = "bukkit")
     }
@@ -60,7 +60,7 @@ tasks {
     }
     
     runServer {
-        minecraftVersion("1.21.11")
+        minecraftVersion("1.20.6")
     }
     
     test {

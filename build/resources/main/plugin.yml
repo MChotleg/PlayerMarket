@@ -1,7 +1,7 @@
 name: PlayerMarket
-version: 1.0
+version: 1.1
 main: org.playermarket.PlayerMarket
-api-version: '1.21'
+api-version: '1.18'
 description: 玩家交易市场插件
 author: 你的名字
 

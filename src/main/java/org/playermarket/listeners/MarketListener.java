@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 
 public class MarketListener implements Listener {
     private boolean isCustomGUI(Inventory inventory) {
@@ -156,6 +157,9 @@ public class MarketListener implements Listener {
             return null;
         }
 
+        // 获取订单ID前缀，支持国际化
+        String orderIdPrefix = getOrderIdPrefix();
+        
         for (String line : lore) {
             if (line == null) {
                 continue;
@@ -163,12 +167,9 @@ public class MarketListener implements Listener {
             String plain = org.bukkit.ChatColor.stripColor(line).trim();
             String idStr = null;
             
-            if (plain.startsWith("收购订单ID:")) {
-                idStr = plain.substring("收购订单ID:".length()).trim();
-            } else if (plain.startsWith("订单ID:")) {
-                idStr = plain.substring("订单ID:".length()).trim();
-            } else if (plain.startsWith("Order ID:")) {
-                idStr = plain.substring("Order ID:".length()).trim();
+            // 使用统一的I18n前缀进行匹配
+            if (plain.startsWith(orderIdPrefix)) {
+                idStr = plain.substring(orderIdPrefix.length()).trim();
             }
             
             if (idStr != null) {
@@ -180,6 +181,32 @@ public class MarketListener implements Listener {
         }
 
         return null;
+    }
+    
+    /**
+     * 获取订单ID前缀，支持国际化
+     * 从I18n获取统一的前缀，如果获取失败则使用默认值作为后备
+     */
+    private String getOrderIdPrefix() {
+        // 尝试从I18n获取统一前缀
+        try {
+            String prefix = I18n.get("order.id.prefix");
+            if (prefix != null && !prefix.trim().isEmpty()) {
+                // 确保前缀以冒号结尾，保持向后兼容
+                String trimmed = prefix.trim();
+                if (!trimmed.endsWith(":")) {
+                    trimmed += ":";
+                }
+                return trimmed;
+            }
+        } catch (Exception e) {
+            // I18n键可能不存在，使用默认值
+            plugin.getLogger().warning("Failed to get order ID prefix from I18n, using default value");
+        }
+        
+        // 默认后备值，支持中英文
+        // 注意：这里使用默认语言环境的前缀，实际应通过玩家语言环境获取
+        return "Order ID:";
     }
 
     public MarketListener(PlayerMarket plugin) {

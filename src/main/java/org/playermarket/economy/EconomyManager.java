@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.playermarket.PlayerMarket;
 import org.playermarket.utils.I18n;
+import java.util.Collection;
 
 public class EconomyManager {
     private final PlayerMarket plugin;
@@ -25,15 +26,41 @@ public class EconomyManager {
                 return false;
             }
 
-            RegisteredServiceProvider<Economy> rsp = plugin.getServer()
-                    .getServicesManager().getRegistration(Economy.class);
-
-            if (rsp == null) {
+            // 获取配置的经济提供者名称
+            String configuredProvider = plugin.getConfig().getString("economy.provider", "default");
+            Collection<RegisteredServiceProvider<Economy>> providers = plugin.getServer()
+                    .getServicesManager().getRegistrations(Economy.class);
+            
+            if (providers == null || providers.isEmpty()) {
                 plugin.getLogger().warning(I18n.get("economy.provider.notfound"));
                 return false;
             }
 
-            economy = rsp.getProvider();
+            RegisteredServiceProvider<Economy> selectedProvider = null;
+            
+            if (configuredProvider.equalsIgnoreCase("default")) {
+                // 使用第一个可用的提供者
+                selectedProvider = providers.iterator().next();
+                plugin.getLogger().info(I18n.get("economy.connected.default", selectedProvider.getProvider().getName()));
+            } else {
+                // 查找匹配名称的提供者
+                for (RegisteredServiceProvider<Economy> provider : providers) {
+                    if (provider.getProvider().getName().equalsIgnoreCase(configuredProvider)) {
+                        selectedProvider = provider;
+                        break;
+                    }
+                }
+                
+                if (selectedProvider == null) {
+                    // 未找到配置的提供者，使用第一个并记录警告
+                    selectedProvider = providers.iterator().next();
+                    plugin.getLogger().warning(I18n.get("economy.provider.notfound.configured", configuredProvider, selectedProvider.getProvider().getName()));
+                } else {
+                    plugin.getLogger().info(I18n.get("economy.connected.configured", configuredProvider));
+                }
+            }
+
+            economy = selectedProvider.getProvider();
             providerName = economy.getName();
             enabled = true;
             plugin.getLogger().info(I18n.get("economy.connected", providerName));
@@ -65,13 +92,9 @@ public class EconomyManager {
     }
     
     public double getBalance(java.util.UUID playerUuid) {
-        if (!isEconomyEnabled()) return 0.0;
-        try {
-            return economy.getBalance(Bukkit.getOfflinePlayer(playerUuid));
-        } catch (Exception e) {
-            plugin.getLogger().warning(I18n.get("economy.getbalance.failed", e.getMessage()));
-            return 0.0;
-        }
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player == null) return 0.0;
+        return getBalance(player);
     }
 
     public boolean deposit(Player player, double amount) {
@@ -88,16 +111,9 @@ public class EconomyManager {
     }
     
     public boolean deposit(java.util.UUID playerUuid, double amount) {
-        if (!isEconomyEnabled()) return false;
-        if (amount <= 0) return false;
-
-        try {
-            economy.depositPlayer(Bukkit.getOfflinePlayer(playerUuid), amount);
-            return true;
-        } catch (Exception e) {
-            plugin.getLogger().warning(I18n.get("economy.deposit.failed", e.getMessage()));
-            return false;
-        }
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player == null) return false;
+        return deposit(player, amount);
     }
 
     public boolean withdraw(Player player, double amount) {
@@ -117,19 +133,9 @@ public class EconomyManager {
     }
     
     public boolean withdraw(java.util.UUID playerUuid, double amount) {
-        if (!isEconomyEnabled()) return false;
-        if (amount <= 0) return false;
-
-        try {
-            if (economy.has(Bukkit.getOfflinePlayer(playerUuid), amount)) {
-                economy.withdrawPlayer(Bukkit.getOfflinePlayer(playerUuid), amount);
-                return true;
-            }
-            return false;
-        } catch (Exception e) {
-            plugin.getLogger().warning(I18n.get("economy.withdraw.failed", e.getMessage()));
-            return false;
-        }
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player == null) return false;
+        return withdraw(player, amount);
     }
 
     public String format(double amount) {
@@ -137,6 +143,7 @@ public class EconomyManager {
         try {
             return economy.format(amount);
         } catch (Exception e) {
+            plugin.getLogger().warning(I18n.get("economy.format.failed", e.getMessage()));
             return String.valueOf(amount);
         }
     }
@@ -149,6 +156,12 @@ public class EconomyManager {
             plugin.getLogger().warning(I18n.get("economy.has.failed", e.getMessage()));
             return false;
         }
+    }
+    
+    public boolean hasEnough(java.util.UUID playerUuid, double amount) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player == null) return false;
+        return hasEnough(player, amount);
     }
 
     // 获取经济实例（高级用法）
