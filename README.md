@@ -125,6 +125,7 @@ market:
 economy:
   enabled: true
   check-on-open: true
+   provider: "default"
   display-balance: true
 
 # 交易设置
@@ -140,24 +141,125 @@ language:
   auto-detect: true
 ```
 
+### 💰 经济系统配置详解（Economy Configuration Details）
+
+**中文**：
+PlayerMarket 插件通过 **Vault API** 与各种经济插件兼容。`economy.provider` 接口允许服务器管理员指定使用哪个经济插件来处理货币交易。
+
+#### 🔌 Provider 接口配置模式
+
+1. **自动选择模式**（默认）
+   - 配置：`provider: "default"`
+   - 行为：自动选择第一个可用的 Vault 兼容经济插件
+   - 示例：服务器同时安装了 EssentialsX 和 PlayerPoints 时，会优先选择 EssentialsX
+
+2. **指定插件模式**
+   - 配置：`provider: "插件名称"`（如 `"Essentials"`）
+   - 行为：强制使用指定名称的经济插件
+   - 示例：`provider: "PlayerPoints"` 强制使用 PlayerPoints 插件
+
+#### 🔧 配置参数详解
+
+- **`enabled`**：启用/禁用整个经济系统（默认：`true`）
+- **`provider`**：经济插件选择接口（默认：`"default"`）
+- **`check-on-open`**：打开市场时检查经济系统状态（默认：`true`）
+- **`display-balance`**：在界面中显示玩家余额（默认：`true`）
+
+#### 💱 货币格式配置（预留接口）
+以下配置项当前版本暂未实现，作为未来扩展的预留接口：
+- **`format.symbol`**：自定义货币符号（如 "$", "¥", "金币"）
+- **`format.unit-name`**：自定义货币单位名称（如 "金币", "钻石"）
+- **`format.decimal-places`**：小数位数（-1=插件默认，0=无小数，1-4=指定位数）
+- **`format.thousands-separator`**：是否显示千位分隔符
+- **`format.always-show-decimals`**：是否始终显示小数部分
+
+#### ✅ 支持的经济插件
+- Essentials/EssentialsX
+- CMI
+- PlayerPoints
+- TokenEnchant
+- GemsEconomy
+- 任何其他 Vault 兼容的经济插件
+
+**English**：
+PlayerMarket plugin is compatible with various economy plugins through **Vault API**. The `economy.provider` interface allows server administrators to specify which economy plugin to use for currency transactions.
+
+#### 🔌 Provider Interface Modes
+
+1. **Auto-select Mode** (Default)
+   - Configuration: `provider: "default"`
+   - Behavior: Automatically selects the first available Vault-compatible economy plugin
+   - Example: When both EssentialsX and PlayerPoints are installed, EssentialsX will be selected first
+
+2. **Specified Plugin Mode**
+   - Configuration: `provider: "plugin-name"` (e.g., `"Essentials"`)
+   - Behavior: Forces the use of the specified economy plugin
+   - Example: `provider: "PlayerPoints"` forces the use of PlayerPoints plugin
+
+#### 🔧 Configuration Parameters Details
+
+- **`enabled`**：Enable/disable the entire economy system (default: `true`)
+- **`provider`**：Economy plugin selection interface (default: `"default"`)
+- **`check-on-open`**：Check economy system status when opening market (default: `true`)
+- **`display-balance`**：Display player balance in interface (default: `true`)
+
+#### 💱 Currency Format Configuration (Reserved Interface)
+The following configuration items are currently not implemented and reserved for future expansion:
+- **`format.symbol`**：Custom currency symbol (e.g., "$", "¥", "Coins")
+- **`format.unit-name`**：Custom currency unit name (e.g., "Coins", "Diamonds")
+- **`format.decimal-places`**：Decimal places (-1=plugin default, 0=no decimals, 1-4=specific number)
+- **`format.thousands-separator`**：Whether to display thousands separator
+- **`format.always-show-decimals`**：Whether to always display decimal part
+
+#### ✅ Supported Economy Plugins
+- Essentials/EssentialsX
+- CMI
+- PlayerPoints
+- TokenEnchant
+- GemsEconomy
+- Any other Vault-compatible economy plugin
 
 ### 📋 命令详细说明（Command Details）
 
-| 命令 | 描述 | 权限 | 参数 |
-|------|------|------|------|
-| `/playermarket` | 打开市场主界面 | `playermarket.use` | 无 |
-| `/playermarket balance` | 查看个人余额 | `playermarket.use` | 无 |
-| `/playermarket lang` | 设置个人语言 | `playermarket.use` | `<zh_CN\|en_US\|auto>` |
-| `/playermarket defaultlang` | 设置服务器默认语言 | `playermarket.admin` | `<zh_CN\|en_US>` |
-| `/playermarket reload` | 重载配置文件 | `playermarket.admin` | 无 |
-| `/playermarket debug` | 显示调试信息 | `playermarket.admin` | 无 |
-| `/manuela` | 快速上架手中物品 | `playermarket.use` | `<数量> <单价>` |
-| `/pur` | 快速发布求购订单 | `playermarket.use` | `<数量> <单价>` |
+| 命令 | 描述 (中文) | English Description | 权限 | 参数 |
+|------|--------------|---------------------|------|------|
+| `/playermarket` | 打开市场主界面 | Open market main interface | `playermarket.use` | 无 (none) |
+| `/playermarket balance` | 查看个人余额 | Check personal balance | `playermarket.use` | 无 (none) |
+| `/playermarket lang` | 设置个人语言 | Set personal language | `playermarket.use` | `<zh_CN\|en_US\|auto>` |
+| `/playermarket defaultlang` | 设置服务器默认语言 | Set server default language | `playermarket.admin` | `<zh_CN\|en_US>` |
+| `/playermarket reload` | 重载配置文件 | Reload configuration file | `playermarket.admin` | 无 (none) |
+| `/playermarket debug` | 显示调试信息 | Display debug information | `playermarket.admin` | 无 (none) |
+| `/manuela` | 快速上架手中物品 | Quickly list held item | `playermarket.use` | `<数量> <单价>` (quantity price) |
+| `/pur` | 快速发布求购订单 | Quickly create buy order | `playermarket.use` | `<数量> <单价>` (quantity price) |
 
 
 ### 📊 更新日志（Changelog）
 
+#### v1.1
+**中文**：
+- 📝 **完善README文档**：添加详细的经济系统配置说明，重点解释`provider`接口工作原理
+- 🔧 **增强经济配置**：在`config.yml`中添加`economy.provider`接口和`economy.format`预留配置
+- 📖 **文档结构优化**：添加"💰 经济系统配置详解"章节，提供中英文双语说明
+- 🏗️ **架构重构**：将监听器拆分为模块化文件（BaseMarketListener + 专用监听器）提升维护性
+- 🌍 **国际化改进**：增强物品名称本地化，支持玩家语言智能切换
+- 🐛 **PurpurMC兼容性**：修复颜色代码引发的GUI异常问题
+- 📦 **版本兼容性**：支持Paper API 1.20.6+（兼容1.21.11 Purpur服务器）
+- 🛠️ **开发工具**：创建标准化插件模板技能（minecraft-plugin-template），便于快速新项目开发
+- ⚙️ **配置简化**：简化`config.yml`结构，移除冗余选项
+
+**English**：
+- 📝 **Enhanced README documentation**: Added detailed economy system configuration explanation, focusing on `provider` interface mechanism
+- 🔧 **Enhanced economy configuration**: Added `economy.provider` interface and `economy.format` reserved configuration to `config.yml`
+- 📖 **Document structure optimization**: Added "💰 Economy Configuration Details" section with bilingual explanations
+- 🏗️ **Architecture refactoring**: Split listeners into modular files (BaseMarketListener + specialized listeners) for better maintainability
+- 🌍 **Internationalization improvement**: Enhanced item name localization with player language smart switching
+- 🐛 **PurpurMC compatibility**: Fixed GUI exceptions caused by color codes
+- 📦 **Version compatibility**: Supports Paper API 1.20.6+ (compatible with 1.21.11 Purpur server)
+- 🛠️ **Development tools**: Created standardized plugin template skill (minecraft-plugin-template) for quick new project setup
+- ⚙️ **Configuration simplification**: Simplified `config.yml` structure, removed redundant options
+
 #### v1.0
+**中文**：
 - ✨ 初始版本发布：完整的市场交易系统
 - 🌐 双语支持：中英文界面，智能语言检测
 - 🔔 通知系统：实时交易通知，离线通知保存
@@ -166,20 +268,29 @@ language:
 - 📱 GUI界面：直观的图形操作界面
 - 🔒 权限系统：基于权限节点的访问控制
 
+**English**：
+- ✨ Initial version release: Complete market trading system
+- 🌐 Bilingual support: Chinese-English interface with smart language detection
+- 🔔 Notification system: Real-time transaction notifications with offline storage
+- 🗃️ Database: SQLite storage with data persistence
+- 💰 Economy integration: Vault support, compatible with multiple economy plugins
+- 📱 GUI interface: Intuitive graphical operation interface
+- 🔒 Permission system: Permission node-based access control
+
 
 ### ❓ 常见问题（FAQ）
 
-**Q: 购买商品后物品在哪里？**  
-**A:** 购买的物品会自动存入 **我的仓库**，需手动取出。
+**Q: 购买商品后物品在哪里？** / **Q: Where do items go after purchase?**  
+**A:** 购买的物品会自动存入 **我的仓库**，需手动取出。 / **A:** Purchased items are automatically stored in **My Warehouse**, need to be manually withdrawn.
 
-**Q: 求购订单完成后物品在哪里？**  
-**A:** 收购的物品会自动存入 **我的仓库**，需手动取出。
+**Q: 求购订单完成后物品在哪里？** / **Q: Where do items go after buy order completion?**  
+**A:** 收购的物品会自动存入 **我的仓库**，需手动取出。 / **A:** Acquired items are automatically stored in **My Warehouse**, need to be manually withdrawn.
 
-**Q: 经济系统不可用怎么办？**  
-**A:** 请确保已安装 Vault 插件和兼容的经济插件，并正确配置。
+**Q: 经济系统不可用怎么办？** / **Q: What if economy system is unavailable?**  
+**A:** 请确保已安装 Vault 插件和兼容的经济插件，并正确配置。 / **A:** Make sure Vault plugin and compatible economy plugin are installed and properly configured.
 
-**Q: 权限不足怎么办？**  
-**A:** 联系服务器管理员为您分配 `playermarket.use` 权限。
+**Q: 权限不足怎么办？** / **Q: What if I don't have permission?**  
+**A:** 联系服务器管理员为您分配 `playermarket.use` 权限。 / **A:** Contact server administrator to assign you `playermarket.use` permission.
 
-**Q: 如何切换界面语言？**  
-**A:** 使用命令 `/pm lang zh_CN`（中文）或 `/pm lang en_US`（英文）或 `/pm lang auto`（自动）。
+**Q: 如何切换界面语言？** / **Q: How to switch interface language?**  
+**A:** 使用命令 `/pm lang zh_CN`（中文）或 `/pm lang en_US`（英文）或 `/pm lang auto`（自动）。 / **A:** Use command `/pm lang zh_CN` (Chinese) or `/pm lang en_US` (English) or `/pm lang auto` (auto).

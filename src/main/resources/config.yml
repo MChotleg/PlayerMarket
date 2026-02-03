@@ -1,30 +1,23 @@
-# PlayerMarket 配置文件
-# 版本: 1.0
+# PlayerMarket 配置文件 v1.1
 
-# 市场界面设置
 market:
-  title: "§6玩家市场 §7| §a余额: {balance}"  # {balance} 会被替换为玩家余额
-  size: 54  # 必须是9的倍数 (9, 18, 27, 36, 45, 54)
-  auto-refresh: true  # 是否自动刷新市场
-  refresh-interval: 30  # 刷新间隔（秒）
+  title: "§6玩家市场 §7| §a余额: {balance}"
+  size: 54
+  auto-refresh: true
+  refresh-interval: 30
 
-# 经济系统设置
 economy:
   enabled: true
-  provider: "default"  # 经济提供者名称（当服务器有多个经济插件时指定），默认使用第一个可用提供者
-  check-on-open: true  # 打开市场时检查经济系统
-  display-balance: true  # 在GUI中显示余额
+  provider: "default"
+  check-on-open: true
+  display-balance: true
 
-# 交易设置
 transaction:
   enabled: true
-  fee-percentage: 1.5  # 交易手续费百分比 (1.5%)
-  min-price: 0.01  # 最低交易价格
-  max-price: 1000000.0  # 最高交易价格
-  tax-to-server: false  # 手续费是否归服务器所有
-  require-confirmation: true  # 需要交易确认
+  fee-percentage: 1.5
+  min-price: 0.01
+  max-price: 1000000.0
 
-# 消息配置
 messages:
   market-opened: "§a正在打开玩家市场..."
   market-closed: "§c市场已关闭"
@@ -33,16 +26,6 @@ messages:
   transaction-success: "§a交易成功！{action} {item} 价格: §6{price}"
   item-sold: "§a你的物品已成功出售！收入: §6{price}"
   item-bought: "§a成功购买物品！花费: §6{price}"
-  economy-disabled: "§c经济系统不可用，无法进行交易"
-  config-reloaded: "§a配置文件已重新加载"
 
-# 调试设置
-debug:
-  enabled: false  # 启用调试模式
-  log-commands: false  # 记录命令使用
-  log-transactions: true  # 记录交易
-
-# 语言设置
 language:
-  default: "zh_CN"  # 默认语言: zh_CN 或 en_US
-  auto-detect: true  # 自动检测玩家语言（暂未实现）
+  default: "zh_CN"
