@@ -1,7 +1,7 @@
-# PlayerMarket 配置文件 v1.1
+# PlayerMarket Configuration File v1.1
 
 market:
-  title: "§6玩家市场 §7| §a余额: {balance}"
+  title: "§6Player Market §7| §aBalance: {balance}"
   size: 54
   auto-refresh: true
   refresh-interval: 30
@@ -11,6 +11,19 @@ economy:
   provider: "default"
   check-on-open: true
   display-balance: true
+  currency:
+    enabled: true
+    detect-symbol: true
+    default-symbol: "⛃"
+    position: "prefix" # prefix or suffix
+    decimal-places: -1 # -1 means follow provider format
+    thousands-separator: true
+    always-show-decimals: false
+    provider-symbols:
+      CMIEconomy: "$"
+      EssentialsX: "$"
+      iConomy: "$"
+      PlayerPoints: "★"
 
 transaction:
   enabled: true
@@ -18,14 +31,38 @@ transaction:
   min-price: 0.01
   max-price: 1000000.0
 
-messages:
-  market-opened: "§a正在打开玩家市场..."
-  market-closed: "§c市场已关闭"
-  no-permission: "§c你没有权限使用此功能"
-  no-money: "§c余额不足！需要: §6{amount}§c，当前: §6{balance}"
-  transaction-success: "§a交易成功！{action} {item} 价格: §6{price}"
-  item-sold: "§a你的物品已成功出售！收入: §6{price}"
-  item-bought: "§a成功购买物品！花费: §6{price}"
-
 language:
-  default: "zh_CN"
+  default: "en_US"
+updates:
+  enabled: true
+  check-at-start: true
+  check-interval-seconds: 86400
+  notify-console: true
+  notify-players: false
+  permission: "playermarket.update"
+  check-url: "https://raw.githubusercontent.com/mchotleg/PlayerMarket/main/.update/latest.json"
+
+# Player Shops Configuration
+player-shops:
+  # Featured shops list (player UUIDs)
+  featured-shops:
+  
+  # Shop interface settings
+  gui:
+    # Number of shops per page (all shops interface)
+    shops-per-page: 45
+    # Whether to show inactive shops (no listings or buy orders)
+    show-inactive-shops: false
+    # Default sort method: "listings" (listing count), "buy_orders" (buy order count), "name" (player name), "recent" (recent activity)
+    default-sort: "listings"
+    # Number of featured shops to display (max 14, matches interface slots)
+    featured-shops-display-count: 14
+  
+  # Shop information
+  shop-info:
+    # Whether players can customize shop name
+    allow-custom-name: true
+    # Whether players can customize shop description
+    allow-custom-description: true
+    # Default shop name format
+    # Default shop description

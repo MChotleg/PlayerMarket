@@ -7,7 +7,9 @@ import org.playermarket.utils.I18n;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -1258,6 +1260,91 @@ public class DatabaseManager {
             plugin.getLogger().log(Level.SEVERE, "更新收购订单数量失败", e);
         }
         return false;
+    }
+    
+    /**
+     * 获取有活跃商品或订单的玩家列表
+     * 活跃定义：有未售出的上架商品或未完成的收购订单
+     * @return 玩家UUID和名称的列表
+     */
+    public List<Map<String, Object>> getActivePlayerShops() {
+        List<Map<String, Object>> activePlayers = new ArrayList<>();
+        
+        try {
+            // 查询有未售出商品的玩家
+            String marketItemsSql = "SELECT DISTINCT seller_uuid, seller_name, COUNT(*) as listings_count " +
+                                   "FROM market_items WHERE sold = FALSE GROUP BY seller_uuid, seller_name";
+            
+            // 查询有未完成收购订单的玩家
+            String buyOrdersSql = "SELECT DISTINCT buyer_uuid, buyer_name, COUNT(*) as buy_orders_count " +
+                                 "FROM buy_orders WHERE fulfilled = FALSE GROUP BY buyer_uuid, buyer_name";
+            
+            // 使用Map来存储玩家信息，避免重复
+            Map<UUID, Map<String, Object>> playerMap = new HashMap<>();
+            
+            // 处理上架商品
+            try (PreparedStatement pstmt = connection.prepareStatement(marketItemsSql);
+                 ResultSet rs = pstmt.executeQuery()) {
+                
+                while (rs.next()) {
+                    UUID playerUuid = UUID.fromString(rs.getString("seller_uuid"));
+                    String playerName = rs.getString("seller_name");
+                    int listingsCount = rs.getInt("listings_count");
+                    
+                    Map<String, Object> playerInfo = new HashMap<>();
+                    playerInfo.put("uuid", playerUuid);
+                    playerInfo.put("name", playerName);
+                    playerInfo.put("listings_count", listingsCount);
+                    playerInfo.put("buy_orders_count", 0);
+                    playerInfo.put("total_active", listingsCount);
+                    
+                    playerMap.put(playerUuid, playerInfo);
+                }
+            }
+            
+            // 处理收购订单
+            try (PreparedStatement pstmt = connection.prepareStatement(buyOrdersSql);
+                 ResultSet rs = pstmt.executeQuery()) {
+                
+                while (rs.next()) {
+                    UUID playerUuid = UUID.fromString(rs.getString("buyer_uuid"));
+                    String playerName = rs.getString("buyer_name");
+                    int buyOrdersCount = rs.getInt("buy_orders_count");
+                    
+                    if (playerMap.containsKey(playerUuid)) {
+                        // 更新现有玩家信息
+                        Map<String, Object> playerInfo = playerMap.get(playerUuid);
+                        playerInfo.put("buy_orders_count", buyOrdersCount);
+                        playerInfo.put("total_active", (int)playerInfo.get("listings_count") + buyOrdersCount);
+                    } else {
+                        // 添加新玩家信息
+                        Map<String, Object> playerInfo = new HashMap<>();
+                        playerInfo.put("uuid", playerUuid);
+                        playerInfo.put("name", playerName);
+                        playerInfo.put("listings_count", 0);
+                        playerInfo.put("buy_orders_count", buyOrdersCount);
+                        playerInfo.put("total_active", buyOrdersCount);
+                        
+                        playerMap.put(playerUuid, playerInfo);
+                    }
+                }
+            }
+            
+            // 转换为列表
+            activePlayers.addAll(playerMap.values());
+            
+            // 按活跃度排序（总活跃数量）
+            activePlayers.sort((a, b) -> {
+                int totalA = (int) a.get("total_active");
+                int totalB = (int) b.get("total_active");
+                return Integer.compare(totalB, totalA); // 降序
+            });
+            
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "获取活跃玩家店铺列表失败", e);
+        }
+        
+        return activePlayers;
     }
     
     // ResultSet转BuyOrder

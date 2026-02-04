@@ -7,6 +7,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.playermarket.PlayerMarket;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.model.MarketItem;
@@ -74,6 +75,18 @@ public class MarketGUI implements InventoryHolder {
 
         ItemStack sellMarketButton = createPageButton(I18n.get(player, "market.sell"), Material.DIAMOND_BLOCK, I18n.get(player, "market.main.sell.lore"));
         inventory.setItem(12, sellMarketButton);
+
+        ItemStack playerShopButton = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta playerShopMeta = (SkullMeta) playerShopButton.getItemMeta();
+        if (playerShopMeta != null) {
+            playerShopMeta.setDisplayName(I18n.get(player, "market.player_shop"));
+            List<String> lore = new ArrayList<>();
+            lore.add(I18n.get(player, "market.main.player_shop.lore"));
+            playerShopMeta.setLore(lore);
+            playerShopMeta.setOwningPlayer(player);
+            playerShopButton.setItemMeta(playerShopMeta);
+        }
+        inventory.setItem(13, playerShopButton);
 
         ItemStack myListingsButton = createPageButton(I18n.get(player, "market.mylistings"), Material.CHEST, I18n.get(player, "market.main.mylistings.lore"));
         inventory.setItem(14, myListingsButton);

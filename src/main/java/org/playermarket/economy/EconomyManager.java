@@ -6,17 +6,31 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.playermarket.PlayerMarket;
 import org.playermarket.utils.I18n;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class EconomyManager {
     private final PlayerMarket plugin;
     private Economy economy;
     private boolean enabled = false;
     private String providerName = "未知";
+    private boolean currencyFormatEnabled = true;
+    private boolean detectSymbol = true;
+    private String defaultSymbol = "⛃";
+    private String symbolPosition = "prefix"; // prefix or suffix
+    private int decimalPlaces = -1; // -1 means follow provider
+    private boolean thousandsSeparator = true;
+    private boolean alwaysShowDecimals = false;
+    private final Map<String, String> providerSymbols = new HashMap<>();
 
     public EconomyManager(PlayerMarket plugin) {
         this.plugin = plugin;
         setupEconomy();
+        loadCurrencyConfig();
     }
 
     private boolean setupEconomy() {
@@ -68,6 +82,31 @@ public class EconomyManager {
         } catch (Exception e) {
             plugin.getLogger().severe(I18n.get("economy.init.failed", e.getMessage()));
             return false;
+        }
+    }
+
+    private void loadCurrencyConfig() {
+        try {
+            currencyFormatEnabled = plugin.getConfig().getBoolean("economy.currency.enabled", true);
+            detectSymbol = plugin.getConfig().getBoolean("economy.currency.detect-symbol", true);
+            defaultSymbol = plugin.getConfig().getString("economy.currency.default-symbol", "⛃");
+            symbolPosition = plugin.getConfig().getString("economy.currency.position", "prefix");
+            decimalPlaces = plugin.getConfig().getInt("economy.currency.decimal-places", -1);
+            thousandsSeparator = plugin.getConfig().getBoolean("economy.currency.thousands-separator", true);
+            alwaysShowDecimals = plugin.getConfig().getBoolean("economy.currency.always-show-decimals", false);
+            // provider-symbols
+            Map<String, Object> map = plugin.getConfig().getConfigurationSection("economy.currency.provider-symbols") != null
+                    ? plugin.getConfig().getConfigurationSection("economy.currency.provider-symbols").getValues(false)
+                    : null;
+            if (map != null) {
+                providerSymbols.clear();
+                for (Map.Entry<String, Object> e : map.entrySet()) {
+                    if (e.getValue() != null) {
+                        providerSymbols.put(e.getKey(), String.valueOf(e.getValue()));
+                    }
+                }
+            }
+        } catch (Exception ignored) {
         }
     }
 
@@ -141,7 +180,47 @@ public class EconomyManager {
     public String format(double amount) {
         if (!isEconomyEnabled()) return String.valueOf(amount);
         try {
-            return economy.format(amount);
+            if (!currencyFormatEnabled) {
+                return economy.format(amount);
+            }
+            String symbol = resolveSymbol();
+            if (decimalPlaces < 0) {
+                // 跟随提供者格式
+                String base = economy.format(amount);
+                // 若配置要求替换符号，则尝试替换或追加
+                if (symbol != null && !symbol.isEmpty()) {
+                    String numeric = base.replaceAll("[^0-9.,]", "").trim();
+                    if (numeric.isEmpty()) {
+                        numeric = String.valueOf(amount);
+                    }
+                    return symbolPosition.equalsIgnoreCase("suffix")
+                            ? numeric + " " + symbol
+                            : symbol + numeric;
+                }
+                return base;
+            } else {
+                // 使用自定义数字格式
+                DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+                symbols.setGroupingSeparator(thousandsSeparator ? ',' : '\0');
+                symbols.setDecimalSeparator('.');
+                StringBuilder pattern = new StringBuilder();
+                pattern.append("#");
+                if (thousandsSeparator) pattern.insert(0, "#,###");
+                if (decimalPlaces > 0 || alwaysShowDecimals) {
+                    pattern.append(".");
+                    for (int i = 0; i < decimalPlaces; i++) {
+                        pattern.append(alwaysShowDecimals ? "0" : "#");
+                    }
+                }
+                DecimalFormat df = new DecimalFormat(pattern.toString(), symbols);
+                String number = df.format(amount);
+                if (symbol != null && !symbol.isEmpty()) {
+                    return symbolPosition.equalsIgnoreCase("suffix")
+                            ? number + " " + symbol
+                            : symbol + number;
+                }
+                return number;
+            }
         } catch (Exception e) {
             plugin.getLogger().warning(I18n.get("economy.format.failed", e.getMessage()));
             return String.valueOf(amount);
@@ -167,5 +246,26 @@ public class EconomyManager {
     // 获取经济实例（高级用法）
     public Economy getEconomy() {
         return economy;
+    }
+
+    public String getCurrencySymbol() {
+        return resolveSymbol();
+    }
+
+    private String resolveSymbol() {
+        String mapped = providerSymbols.getOrDefault(providerName, null);
+        if (mapped != null && !mapped.isEmpty()) return mapped;
+        if (detectSymbol) {
+            try {
+                String sample = economy.format(1234.56);
+                String prefix = sample.replaceAll("[0-9.,\\s]+", "").trim();
+                if (!prefix.isEmpty()) return prefix;
+                String digits = sample.replaceAll("[^0-9.,]", "").trim();
+                String suffix = sample.replace(digits, "").trim();
+                if (!suffix.isEmpty()) return suffix;
+            } catch (Exception ignored) {
+            }
+        }
+        return defaultSymbol;
     }
 }

@@ -13,6 +13,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.playermarket.economy.EconomyManager;
 import org.playermarket.database.DatabaseManager;
 import org.playermarket.utils.I18n;
+import org.playermarket.Metrics;
+import org.playermarket.utils.UpdateChecker;
 
 public class PlayerMarket extends JavaPlugin {
     private InventoryClickListener inventoryClickListener;
@@ -43,6 +45,29 @@ public class PlayerMarket extends JavaPlugin {
 
             initListeners();
 
+            // bStats Metrics
+            int pluginId = 29299; // TODO: 替换为你的bStats插件ID
+            Metrics metrics = new Metrics(this, pluginId);
+
+            //统计插件版本分布
+            metrics.addCustomChart(
+            new Metrics.SimplePie("plugin_version", 
+                () -> this.getDescription().getVersion())
+            );
+
+            //统计经济提供商使用情况
+            metrics.addCustomChart(
+                new Metrics.SimplePie("economy_provider",
+                    () -> economyManager.getProviderName())
+            );
+
+
+            //统计语言设置（使用饼图）
+            metrics.addCustomChart(
+                new Metrics.SimplePie("default_language",
+                    () -> getConfig().getString("language", "en_US"))
+            );
+
             marketCommandExecutor = new MarketCommand(this);
             sellCommandExecutor = new SellCommand(this);
             purCommandExecutor = new PurCommand(this);
@@ -54,6 +79,12 @@ public class PlayerMarket extends JavaPlugin {
                 getLogger().warning(I18n.get("plugin.economy.unavailable"));
             }
 
+            try {
+                if (getConfig().getBoolean("updates.enabled", true) && getConfig().getBoolean("updates.check-at-start", true)) {
+                    new UpdateChecker(this).checkAsync();
+                }
+            } catch (Exception ignored) {}
+
             getLogger().info(I18n.get("plugin.ready"));
 
         } catch (Exception e) {
@@ -62,7 +93,7 @@ public class PlayerMarket extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
         }
     }
-
+    
     /**
      * 同步注册命令（在主线程中直接注册）
      */
