@@ -1,16 +1,16 @@
 name: PlayerMarket
 api: ['1.20']
-version: "1.1"
+version: "1.2"
 main: org.playermarket.PlayerMarket
 api-version: '1.20'
 description: Player trading market plugin
 author: MChotleg
 
-# ⚠️ Dependency configuration - Key to resolving Vault conflicts
+# ⚠️ 依赖配置 - 解决Vault冲突的关键 / Dependency configuration - Key to resolving Vault conflicts
 depend: [Vault]
 softdepend: [Essentials, EssentialsX]
 
-# 命令配置
+# 命令配置 / Commands configuration
 commands:
   playermarket:
     description: Open player market
@@ -31,7 +31,7 @@ commands:
     permission: playermarket.use
     permission-message: "§cYou don't have permission to use this command"
 
-# 权限配置
+# 权限配置 / Permissions configuration
 permissions:
   playermarket.use:
     description: Allows using player market
@@ -43,4 +43,8 @@ permissions:
   
   playermarket.bypass:
     description: Bypass market restrictions
+    default: op
+  
+  playermarket.update:
+    description: Allows receiving update notifications
     default: op

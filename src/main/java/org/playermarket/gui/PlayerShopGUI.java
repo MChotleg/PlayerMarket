@@ -15,7 +15,9 @@ import org.playermarket.model.BuyOrder;
 import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class PlayerShopGUI implements InventoryHolder {
@@ -23,6 +25,25 @@ public class PlayerShopGUI implements InventoryHolder {
     private final Player player;
     private final DatabaseManager dbManager;
     private final Inventory inventory;
+    private final Map<Integer, FeaturedShopInfo> featuredShopsMap = new HashMap<>();
+    
+    public static class FeaturedShopInfo {
+        final UUID playerUuid;
+        final String playerName;
+        
+        FeaturedShopInfo(UUID playerUuid, String playerName) {
+            this.playerUuid = playerUuid;
+            this.playerName = playerName;
+        }
+        
+        public UUID getPlayerUuid() {
+            return playerUuid;
+        }
+        
+        public String getPlayerName() {
+            return playerName;
+        }
+    }
     
     public PlayerShopGUI(PlayerMarket plugin, Player player) {
         this.plugin = plugin;
@@ -114,77 +135,95 @@ public class PlayerShopGUI implements InventoryHolder {
         int[] featuredSlots = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34};
         
         // 确保显示数量不超过可用槽位数量
-        int slotIndex = 0;
         int displayedCount = 0;
         
-        for (int i = 0; i < featuredShopUUIDs.size() && displayedCount < maxDisplayCount && slotIndex < featuredSlots.length; i++) {
-            String uuidString = featuredShopUUIDs.get(i);
-            try {
-                UUID playerUuid = UUID.fromString(uuidString);
-                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUuid);
+        for (int i = 0; i < featuredSlots.length && i < maxDisplayCount; i++) {
+            int slot = featuredSlots[i];
+            boolean isValidShop = false;
+            
+            // 检查当前索引是否有配置
+            if (i < featuredShopUUIDs.size()) {
+                String uuidString = featuredShopUUIDs.get(i);
                 
-                // 检查玩家是否存在
-                if (offlinePlayer.getName() == null) {
-                    // 玩家不存在，跳过
-                    plugin.getLogger().warning("推荐店铺玩家不存在，UUID: " + uuidString);
-                    continue;
+                if (uuidString != null && !uuidString.equalsIgnoreCase("null") && !uuidString.isEmpty()) {
+                    try {
+                        UUID playerUuid = UUID.fromString(uuidString);
+                        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUuid);
+                        
+                        // 检查玩家是否存在（名字不为空）
+                        if (offlinePlayer.getName() != null) {
+                            String playerName = offlinePlayer.getName();
+                            
+                            // 获取实际的上架商品数量
+                            int listingsCount = dbManager.getPlayerListingsCount(playerUuid);
+                            
+                            // 获取实际的求购订单数量
+                            List<BuyOrder> buyOrders = dbManager.getPlayerBuyOrders(playerUuid);
+                            int buyOrdersCount = (int) buyOrders.stream().filter(order -> !order.isFulfilled()).count();
+                            
+                            ItemStack shopItem = new ItemStack(Material.PLAYER_HEAD);
+                            ItemMeta shopMeta = shopItem.getItemMeta();
+                            
+                            if (shopMeta instanceof SkullMeta) {
+                                SkullMeta skullMeta = (SkullMeta) shopMeta;
+                                skullMeta.setOwningPlayer(offlinePlayer);
+                                
+                                // 使用玩家名称作为店铺名称
+                                String shopName = I18n.get(player, "player_shop.featured.default_name", playerName);
+                                skullMeta.setDisplayName("§b§l" + shopName);
+                                
+                                List<String> lore = new ArrayList<>();
+                                lore.add(I18n.get(player, "player_shop.featured.default_description", playerName));
+                                lore.add("");
+                                lore.add("§a§l" + I18n.get(player, "player_shop.featured.listings") + ": §e" + listingsCount);
+                                lore.add("§6§l" + I18n.get(player, "player_shop.featured.buy_orders") + ": §e" + buyOrdersCount);
+                                lore.add("");
+                                lore.add(I18n.get(player, "player_shop.featured.click_hint"));
+                                skullMeta.setLore(lore);
+                                shopItem.setItemMeta(skullMeta);
+                                inventory.setItem(slot, shopItem);
+                                
+                                // 存储店铺信息以便点击时获取
+                                featuredShopsMap.put(slot, new FeaturedShopInfo(playerUuid, playerName));
+                                
+                                isValidShop = true;
+                                displayedCount++;
+                            }
+                        } else {
+                            // 玩家不存在，视为无效配置，显示占位符
+                        }
+                    } catch (IllegalArgumentException e) {
+                        // 无效UUID，视为无效配置
+                    }
                 }
-                
-                String playerName = offlinePlayer.getName();
-                
-                // 获取实际的上架商品数量
-                int listingsCount = dbManager.getPlayerListingsCount(playerUuid);
-                
-                // 获取实际的求购订单数量
-                List<BuyOrder> buyOrders = dbManager.getPlayerBuyOrders(playerUuid);
-                int buyOrdersCount = (int) buyOrders.stream().filter(order -> !order.isFulfilled()).count();
-                
-                // 如果玩家没有活跃的商品或订单，可以选择跳过（可选）
-                // 但为了显示推荐店铺，即使没有活跃商品也显示
-                
-                ItemStack shopItem = new ItemStack(Material.PLAYER_HEAD);
-                ItemMeta shopMeta = shopItem.getItemMeta();
-                
-                if (shopMeta instanceof SkullMeta) {
-                    SkullMeta skullMeta = (SkullMeta) shopMeta;
-                    skullMeta.setOwningPlayer(offlinePlayer);
-                    
-                    // 使用玩家名称作为店铺名称
-                    String shopName = I18n.get(player, "player_shop.featured.default_name", playerName);
-                    skullMeta.setDisplayName("§b§l" + shopName);
-                    
-                    List<String> lore = new ArrayList<>();
-                    lore.add(I18n.get(player, "player_shop.featured.default_description", playerName));
-                    lore.add("");
-                    lore.add("§a§l" + I18n.get(player, "player_shop.featured.listings") + ": §e" + listingsCount);
-                    lore.add("§6§l" + I18n.get(player, "player_shop.featured.buy_orders") + ": §e" + buyOrdersCount);
-                    lore.add("");
-                    lore.add(I18n.get(player, "player_shop.featured.click_hint"));
-                    skullMeta.setLore(lore);
-                    shopItem.setItemMeta(skullMeta);
-                    inventory.setItem(featuredSlots[slotIndex], shopItem);
-                    
-                    slotIndex++;
-                    displayedCount++;
+            }
+            
+            // 如果不是有效店铺，显示占位符
+            if (!isValidShop) {
+                ItemStack placeholderItem = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+                ItemMeta placeholderMeta = placeholderItem.getItemMeta();
+                if (placeholderMeta != null) {
+                    placeholderMeta.setDisplayName(I18n.get(player, "player_shop.featured.placeholder.name"));
+                    List<String> placeholderLore = new ArrayList<>();
+                    placeholderLore.add(I18n.get(player, "player_shop.featured.placeholder.lore"));
+                    placeholderLore.add("");
+                    placeholderLore.add(I18n.get(player, "player_shop.featured.placeholder.tip"));
+                    placeholderMeta.setLore(placeholderLore);
+                    placeholderItem.setItemMeta(placeholderMeta);
+                    inventory.setItem(slot, placeholderItem);
                 }
-            } catch (IllegalArgumentException e) {
-                plugin.getLogger().warning("无效的推荐店铺UUID: " + uuidString);
             }
         }
         
-        // 如果没有显示任何推荐店铺（要么没配置，要么玩家都不存在），显示提示信息
-        if (displayedCount == 0) {
-            ItemStack noShopsItem = new ItemStack(Material.BARRIER);
-            ItemMeta noShopsMeta = noShopsItem.getItemMeta();
-            if (noShopsMeta != null) {
-                noShopsMeta.setDisplayName(I18n.get(player, "player_shop.featured.no_shops"));
-                List<String> lore = new ArrayList<>();
-                lore.add(I18n.get(player, "player_shop.featured.no_shops_lore"));
-                noShopsMeta.setLore(lore);
-                noShopsItem.setItemMeta(noShopsMeta);
-                inventory.setItem(22, noShopsItem); // 在中心位置显示提示
-            }
-        }
+        // 如果没有显示任何推荐店铺（全部都是占位符），在中心位置显示提示（可选，这里保持逻辑但通常占位符已经占据了位置）
+        // 只有当 maxDisplayCount 为 0 或者配置列表为空且 maxDisplayCount > 0 时（上面的循环会填充占位符），
+        // 如果我们想保留"No Shops"的提示，可以检查 displayedCount
+        
+        // 旧逻辑是在没有有效店铺时显示 BARRIER，但新逻辑是显示占位符。
+        // 为了兼容性，如果 displayedCount == 0 且我们想给个强提示，可以覆盖中间的一个占位符？
+        // 或者就不显示 BARRIER 了，因为占位符已经说明了"虚位以待"。
+        // 考虑到用户体验，占位符"虚位以待"比"暂无推荐店铺"的屏障更好看。
+        // 所以这里移除 BARRIER 逻辑，除非完全没有配置。
     }
     
     public void open() {
@@ -201,5 +240,9 @@ public class PlayerShopGUI implements InventoryHolder {
      */
     public void cleanup() {
         // 当前没有需要清理的资源，保留方法以保持一致性
+    }
+    
+    public FeaturedShopInfo getFeaturedShopInfo(int slot) {
+        return featuredShopsMap.get(slot);
     }
 }

@@ -1,4 +1,4 @@
-# PlayerMarket Configuration File v1.1
+# PlayerMarket 配置文件 v1.1 / PlayerMarket Configuration File v1.1
 
 market:
   title: "§6Player Market §7| §aBalance: {balance}"
@@ -15,8 +15,8 @@ economy:
     enabled: true
     detect-symbol: true
     default-symbol: "⛃"
-    position: "prefix" # prefix or suffix
-    decimal-places: -1 # -1 means follow provider format
+    position: "prefix" # prefix 或 suffix / prefix or suffix
+    decimal-places: -1 # -1 表示跟随提供者格式 / -1 means follow provider format
     thousands-separator: true
     always-show-decimals: false
     provider-symbols:
@@ -42,27 +42,27 @@ updates:
   permission: "playermarket.update"
   check-url: "https://raw.githubusercontent.com/mchotleg/PlayerMarket/main/.update/latest.json"
 
-# Player Shops Configuration
+# 玩家店铺配置 / Player Shops Configuration
 player-shops:
-  # Featured shops list (player UUIDs)
+  # 推荐店铺列表（玩家UUID） / Featured shops list (player UUIDs)
   featured-shops:
   
-  # Shop interface settings
+  # 店铺界面设置 / Shop interface settings
   gui:
-    # Number of shops per page (all shops interface)
+    # 每页显示的店铺数量（全服店铺界面） / Number of shops per page (all shops interface)
     shops-per-page: 45
-    # Whether to show inactive shops (no listings or buy orders)
+    # 是否显示非活跃店铺（没有上架商品或求购订单） / Whether to show inactive shops (no listings or buy orders)
     show-inactive-shops: false
-    # Default sort method: "listings" (listing count), "buy_orders" (buy order count), "name" (player name), "recent" (recent activity)
+    # 默认排序方式: "listings"（上架数量）, "buy_orders"（求购数量）, "name"（玩家名称）, "recent"（最近活跃） / Default sort method: "listings" (listing count), "buy_orders" (buy order count), "name" (player name), "recent" (recent activity)
     default-sort: "listings"
-    # Number of featured shops to display (max 14, matches interface slots)
+    # 推荐店铺显示数量（最多14个，对应界面槽位） / Number of featured shops to display (max 14, matches interface slots)
     featured-shops-display-count: 14
   
-  # Shop information
+  # 店铺信息 / Shop information
   shop-info:
-    # Whether players can customize shop name
+    # 是否允许玩家自定义店铺名称 / Whether players can customize shop name
     allow-custom-name: true
-    # Whether players can customize shop description
+    # 是否允许玩家自定义店铺描述 / Whether players can customize shop description
     allow-custom-description: true
-    # Default shop name format
-    # Default shop description
+    # 默认店铺名称格式 / Default shop name format
+    # 默认店铺描述 / Default shop description

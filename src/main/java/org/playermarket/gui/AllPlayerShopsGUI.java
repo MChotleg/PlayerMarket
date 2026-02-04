@@ -28,6 +28,7 @@ public class AllPlayerShopsGUI implements InventoryHolder {
     private int currentPage = 1;
     private final int shopsPerPage = 45;
     private List<PlayerShop> playerShops = new ArrayList<>();
+    private final Map<Integer, PlayerShop> shopSlotMap = new HashMap<>();
     
     public AllPlayerShopsGUI(PlayerMarket plugin, Player player) {
         this.plugin = plugin;
@@ -48,6 +49,10 @@ public class AllPlayerShopsGUI implements InventoryHolder {
             String playerName = (String) playerInfo.get("name");
             int listingsCount = (int) playerInfo.get("listings_count");
             int buyOrdersCount = (int) playerInfo.get("buy_orders_count");
+            int salesCount = playerInfo.containsKey("sales_count") ? (int) playerInfo.get("sales_count") : 0;
+            int purchasesCount = playerInfo.containsKey("purchases_count") ? (int) playerInfo.get("purchases_count") : 0;
+            double salesAmount = playerInfo.containsKey("sales_amount") ? (double) playerInfo.get("sales_amount") : 0.0;
+            double purchasesAmount = playerInfo.containsKey("purchases_amount") ? (double) playerInfo.get("purchases_amount") : 0.0;
             
             // 检查玩家是否存在（能获取到离线玩家信息）
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUuid);
@@ -65,14 +70,44 @@ public class AllPlayerShopsGUI implements InventoryHolder {
             );
             shop.setTotalListings(listingsCount);
             shop.setTotalBuyOrders(buyOrdersCount);
+            shop.setTotalSales(salesCount);
+            shop.setTotalPurchases(purchasesCount);
+            shop.setTotalSalesAmount(salesAmount);
+            shop.setTotalPurchasesAmount(purchasesAmount);
             
             // 检查是否为推荐店铺（从配置读取）
             List<String> featuredShopUUIDs = plugin.getConfig().getStringList("player-shops.featured-shops");
             boolean isRecommended = featuredShopUUIDs.contains(playerUuid.toString());
             shop.setRecommended(isRecommended);
+
+            boolean isOpen = plugin.getConfig().getBoolean("player-shops.open-status." + playerUuid.toString(), true);
+            shop.setOpen(isOpen);
             
             playerShops.add(shop);
         }
+        
+        // 排序逻辑：推荐 > 交易总金额(销售额+收购额) > 营业状态
+        playerShops.sort((s1, s2) -> {
+            // 1. 推荐店铺优先
+            if (s1.isRecommended() != s2.isRecommended()) {
+                return s1.isRecommended() ? -1 : 1;
+            }
+            
+            // 2. 交易总金额（销售额 + 收购额）优先
+            double amount1 = s1.getTotalSalesAmount() + s1.getTotalPurchasesAmount();
+            double amount2 = s2.getTotalSalesAmount() + s2.getTotalPurchasesAmount();
+            if (amount1 != amount2) {
+                return Double.compare(amount2, amount1); // 降序
+            }
+            
+            // 3. 营业状态优先（营业中 > 打烊）
+            if (s1.isOpen() != s2.isOpen()) {
+                return s1.isOpen() ? -1 : 1;
+            }
+            
+            // 4. 兜底：按商品数量排序
+            return Integer.compare(s2.getTotalListings(), s1.getTotalListings());
+        });
         
         refresh();
     }
@@ -107,6 +142,10 @@ public class AllPlayerShopsGUI implements InventoryHolder {
         for (int i = startIndex; i < endIndex; i++) {
             PlayerShop shop = playerShops.get(i);
             inventory.setItem(slot, createShopItem(shop));
+            
+            // 存储槽位到店铺的映射
+            shopSlotMap.put(slot, shop);
+            
             slot++;
             
             // 每行9个物品，跳过最后一行（用于按钮）
@@ -173,19 +212,21 @@ public class AllPlayerShopsGUI implements InventoryHolder {
             }
             
             // 设置显示名称和描述
-            String displayName = shop.isRecommended() ? "§6§l[推荐] §b" + shop.getShopName() : "§b§l" + shop.getShopName();
+            String displayName = shop.isRecommended() ? "§6§l[" + I18n.get(player, "gui.recommended") + "] §b" + shop.getShopName() : "§b§l" + shop.getShopName();
             skullMeta.setDisplayName(displayName);
             
             List<String> lore = new ArrayList<>();
-            lore.add("§7店主: §f" + shop.getPlayerName());
+            lore.add("§7" + I18n.get(player, "player_shop.owner") + ": §f" + shop.getPlayerName());
             lore.add("§7" + shop.getDescription());
             lore.add("");
-            lore.add("§a§l上架商品: §e" + shop.getTotalListings());
-            lore.add("§6§l求购订单: §e" + shop.getTotalBuyOrders());
+            lore.add("§a§l" + I18n.get(player, "player_shop.listings") + ": §e" + shop.getTotalListings());
+            lore.add("§6§l" + I18n.get(player, "player_shop.buy_orders") + ": §e" + shop.getTotalBuyOrders());
+            lore.add("§b§l" + I18n.get(player, "player_shop.sales_amount") + ": §e" + String.format("%.2f", shop.getTotalSalesAmount()));
+            lore.add("§d§l" + I18n.get(player, "player_shop.purchases_amount") + ": §e" + String.format("%.2f", shop.getTotalPurchasesAmount()));
             lore.add("");
-            lore.add("§7状态: " + (shop.isOpen() ? "§a营业中" : "§c已关闭"));
+            lore.add("§7" + I18n.get(player, "player_shop.status") + ": " + (shop.isOpen() ? "§a" + I18n.get(player, "player_shop.status.open") : "§c" + I18n.get(player, "player_shop.status.closed")));
             lore.add("");
-            lore.add("§e§l点击查看店铺详情");
+            lore.add("§e§l" + I18n.get(player, "player_shop.click_to_view"));
             
             skullMeta.setLore(lore);
             shopItem.setItemMeta(skullMeta);
@@ -236,5 +277,9 @@ public class AllPlayerShopsGUI implements InventoryHolder {
      */
     public void cleanup() {
         // 当前没有需要清理的资源，保留方法以保持一致性
+    }
+    
+    public PlayerShop getShopBySlot(int slot) {
+        return shopSlotMap.get(slot);
     }
 }

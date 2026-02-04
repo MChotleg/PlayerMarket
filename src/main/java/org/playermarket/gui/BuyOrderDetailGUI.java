@@ -32,6 +32,16 @@ public class BuyOrderDetailGUI implements InventoryHolder {
     private static final Map<UUID, Boolean> playerUpdating = new HashMap<>();
     private static final int DEFAULT_MULTIPLIER = 1;
     
+    private Runnable backAction;
+
+    public void setBackAction(Runnable backAction) {
+        this.backAction = backAction;
+    }
+
+    public Runnable getBackAction() {
+        return backAction;
+    }
+    
     public BuyOrderDetailGUI(PlayerMarket plugin, BuyOrder buyOrder, Player player) {
         if (plugin == null || buyOrder == null || player == null) {
             throw new IllegalArgumentException("BuyOrderDetailGUI: plugin, buyOrder and player must not be null");

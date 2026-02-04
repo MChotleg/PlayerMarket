@@ -121,6 +121,25 @@ public class DatabaseManager {
             plugin.getLogger().info(I18n.get("database.table.buy_orders"));
         }
         
+        // 创建交易日志表
+        String createTransactionLogsTable = "CREATE TABLE IF NOT EXISTS transaction_logs (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "buyer_uuid TEXT NOT NULL," +
+                "seller_uuid TEXT NOT NULL," +
+                "item_name TEXT NOT NULL," +
+                "amount INTEGER NOT NULL," +
+                "price REAL NOT NULL," +
+                "transaction_type TEXT NOT NULL," + // MARKET_BUY, ORDER_FILL
+                "executor_uuid TEXT NOT NULL," +
+                "executor_ip TEXT," +
+                "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                ");";
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(createTransactionLogsTable);
+            plugin.getLogger().info(I18n.get("database.table.transaction_logs"));
+        }
+        
         migrateDatabase();
     }
     
@@ -190,6 +209,74 @@ public class DatabaseManager {
         }
     }
     
+    // 记录交易日志
+    public void logTransaction(UUID buyerUuid, UUID sellerUuid, String itemName, int amount, double price, String type, UUID executorUuid, String executorIp) {
+        String sql = "INSERT INTO transaction_logs (buyer_uuid, seller_uuid, item_name, amount, price, transaction_type, executor_uuid, executor_ip) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        // 异步执行日志记录
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.setString(1, buyerUuid.toString());
+                pstmt.setString(2, sellerUuid.toString());
+                pstmt.setString(3, itemName);
+                pstmt.setInt(4, amount);
+                pstmt.setDouble(5, price);
+                pstmt.setString(6, type);
+                pstmt.setString(7, executorUuid.toString());
+                pstmt.setString(8, executorIp != null ? executorIp : "unknown");
+                
+                pstmt.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "记录交易日志失败", e);
+            }
+        });
+    }
+
+    /**
+     * 获取可疑的交易对（左手倒右手嫌疑）
+     * 规则：双方交易总金额超过一定阈值，或交易次数超过一定阈值
+     * @param minAmount 最小总交易金额
+     * @param minCount 最小交易次数
+     * @return 交易对列表
+     */
+    public List<Map<String, Object>> getSuspiciousTransactions(double minAmount, int minCount) {
+        List<Map<String, Object>> suspiciousPairs = new ArrayList<>();
+        
+        // 查询A和B之间的双向交易汇总
+        // 只要 A->B 或 B->A 的交易量大，都视为可疑
+        // 这里简化为统计买家和卖家之间的交易
+        String sql = "SELECT buyer_uuid, seller_uuid, " +
+                     "COUNT(*) as trade_count, " +
+                     "SUM(price) as total_amount, " +
+                     "GROUP_CONCAT(DISTINCT executor_ip) as ips " +
+                     "FROM transaction_logs " +
+                     "GROUP BY buyer_uuid, seller_uuid " +
+                     "HAVING total_amount >= ? OR trade_count >= ? " +
+                     "ORDER BY total_amount DESC";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setDouble(1, minAmount);
+            pstmt.setInt(2, minCount);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> record = new HashMap<>();
+                    record.put("buyer_uuid", UUID.fromString(rs.getString("buyer_uuid")));
+                    record.put("seller_uuid", UUID.fromString(rs.getString("seller_uuid")));
+                    record.put("trade_count", rs.getInt("trade_count"));
+                    record.put("total_amount", rs.getDouble("total_amount"));
+                    record.put("ips", rs.getString("ips"));
+                    suspiciousPairs.add(record);
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "查询可疑交易失败", e);
+        }
+        
+        return suspiciousPairs;
+    }
+
     // 添加商品到市场（支持合并）
     public boolean addMarketItem(MarketItem item) {
         // 先检查是否存在相同卖家、相同物品、相同单价的商品
@@ -1279,6 +1366,12 @@ public class DatabaseManager {
             String buyOrdersSql = "SELECT DISTINCT buyer_uuid, buyer_name, COUNT(*) as buy_orders_count " +
                                  "FROM buy_orders WHERE fulfilled = FALSE GROUP BY buyer_uuid, buyer_name";
             
+            // 查询销售量
+            String salesSql = "SELECT seller_uuid, COUNT(*) as sales_count, SUM(price) as sales_amount FROM market_items WHERE sold = TRUE GROUP BY seller_uuid";
+            
+            // 查询收购量
+            String purchasesSql = "SELECT buyer_uuid, COUNT(*) as purchases_count, SUM(total_price - remaining_total_price) as purchases_amount FROM buy_orders GROUP BY buyer_uuid";
+            
             // 使用Map来存储玩家信息，避免重复
             Map<UUID, Map<String, Object>> playerMap = new HashMap<>();
             
@@ -1296,6 +1389,10 @@ public class DatabaseManager {
                     playerInfo.put("name", playerName);
                     playerInfo.put("listings_count", listingsCount);
                     playerInfo.put("buy_orders_count", 0);
+                    playerInfo.put("sales_count", 0);
+                    playerInfo.put("sales_amount", 0.0);
+                    playerInfo.put("purchases_count", 0);
+                    playerInfo.put("purchases_amount", 0.0);
                     playerInfo.put("total_active", listingsCount);
                     
                     playerMap.put(playerUuid, playerInfo);
@@ -1323,6 +1420,10 @@ public class DatabaseManager {
                         playerInfo.put("name", playerName);
                         playerInfo.put("listings_count", 0);
                         playerInfo.put("buy_orders_count", buyOrdersCount);
+                        playerInfo.put("sales_count", 0);
+                        playerInfo.put("sales_amount", 0.0);
+                        playerInfo.put("purchases_count", 0);
+                        playerInfo.put("purchases_amount", 0.0);
                         playerInfo.put("total_active", buyOrdersCount);
                         
                         playerMap.put(playerUuid, playerInfo);
@@ -1330,15 +1431,38 @@ public class DatabaseManager {
                 }
             }
             
+            // 处理销售量
+            try (PreparedStatement pstmt = connection.prepareStatement(salesSql);
+                 ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    UUID playerUuid = UUID.fromString(rs.getString("seller_uuid"));
+                    int salesCount = rs.getInt("sales_count");
+                    double salesAmount = rs.getDouble("sales_amount");
+                    if (playerMap.containsKey(playerUuid)) {
+                        playerMap.get(playerUuid).put("sales_count", salesCount);
+                        playerMap.get(playerUuid).put("sales_amount", salesAmount);
+                    }
+                }
+            }
+            
+            // 处理收购量
+            try (PreparedStatement pstmt = connection.prepareStatement(purchasesSql);
+                 ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    UUID playerUuid = UUID.fromString(rs.getString("buyer_uuid"));
+                    int purchasesCount = rs.getInt("purchases_count");
+                    double purchasesAmount = rs.getDouble("purchases_amount");
+                    if (playerMap.containsKey(playerUuid)) {
+                        playerMap.get(playerUuid).put("purchases_count", purchasesCount);
+                        playerMap.get(playerUuid).put("purchases_amount", purchasesAmount);
+                    }
+                }
+            }
+            
             // 转换为列表
             activePlayers.addAll(playerMap.values());
             
-            // 按活跃度排序（总活跃数量）
-            activePlayers.sort((a, b) -> {
-                int totalA = (int) a.get("total_active");
-                int totalB = (int) b.get("total_active");
-                return Integer.compare(totalB, totalA); // 降序
-            });
+            // 这里不再进行排序，排序逻辑移交给GUI层根据配置处理
             
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "获取活跃玩家店铺列表失败", e);

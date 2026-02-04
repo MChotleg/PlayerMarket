@@ -13,6 +13,10 @@ public class PlayerShop {
     private Timestamp lastActiveTime;
     private int totalListings;
     private int totalBuyOrders;
+    private int totalSales;
+    private double totalSalesAmount;
+    private int totalPurchases;
+    private double totalPurchasesAmount;
     private boolean isRecommended;
     private int recommendationWeight;
     
@@ -29,6 +33,10 @@ public class PlayerShop {
         this.lastActiveTime = new Timestamp(System.currentTimeMillis());
         this.totalListings = 0;
         this.totalBuyOrders = 0;
+        this.totalSales = 0;
+        this.totalSalesAmount = 0.0;
+        this.totalPurchases = 0;
+        this.totalPurchasesAmount = 0.0;
         this.isRecommended = false;
         this.recommendationWeight = 0;
     }
@@ -43,6 +51,10 @@ public class PlayerShop {
         this.lastActiveTime = new Timestamp(System.currentTimeMillis());
         this.totalListings = 0;
         this.totalBuyOrders = 0;
+        this.totalSales = 0;
+        this.totalSalesAmount = 0.0;
+        this.totalPurchases = 0;
+        this.totalPurchasesAmount = 0.0;
         this.isRecommended = false;
         this.recommendationWeight = 0;
     }
@@ -118,6 +130,38 @@ public class PlayerShop {
     
     public void setTotalBuyOrders(int totalBuyOrders) {
         this.totalBuyOrders = totalBuyOrders;
+    }
+    
+    public int getTotalSales() {
+        return totalSales;
+    }
+    
+    public void setTotalSales(int totalSales) {
+        this.totalSales = totalSales;
+    }
+    
+    public int getTotalPurchases() {
+        return totalPurchases;
+    }
+    
+    public void setTotalPurchases(int totalPurchases) {
+        this.totalPurchases = totalPurchases;
+    }
+
+    public double getTotalSalesAmount() {
+        return totalSalesAmount;
+    }
+    
+    public void setTotalSalesAmount(double totalSalesAmount) {
+        this.totalSalesAmount = totalSalesAmount;
+    }
+    
+    public double getTotalPurchasesAmount() {
+        return totalPurchasesAmount;
+    }
+    
+    public void setTotalPurchasesAmount(double totalPurchasesAmount) {
+        this.totalPurchasesAmount = totalPurchasesAmount;
     }
     
     public boolean isRecommended() {

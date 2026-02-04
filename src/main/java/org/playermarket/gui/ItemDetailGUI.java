@@ -34,6 +34,16 @@ public class ItemDetailGUI implements InventoryHolder {
     // 标志位：防止updateDisplay时触发cleanup
     private final Map<UUID, Boolean> playerUpdating = new HashMap<>();
     
+    private Runnable backAction;
+
+    public void setBackAction(Runnable backAction) {
+        this.backAction = backAction;
+    }
+
+    public Runnable getBackAction() {
+        return backAction;
+    }
+    
     public ItemDetailGUI(PlayerMarket plugin, MarketItem marketItem) {
         this.plugin = plugin;
         this.marketItem = marketItem;

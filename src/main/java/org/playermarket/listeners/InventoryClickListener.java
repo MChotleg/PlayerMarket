@@ -16,6 +16,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.playermarket.PlayerMarket;
 import org.playermarket.gui.*;
+import org.playermarket.gui.PlayerShopListingsGUI;
+import org.playermarket.gui.PlayerShopBuyOrdersGUI;
 import org.playermarket.model.MarketItem;
 import org.playermarket.model.WarehouseItem;
 import org.playermarket.model.BuyOrder;
@@ -34,6 +36,169 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
     
     public InventoryClickListener(PlayerMarket plugin) {
         super(plugin);
+    }
+    
+    private void handlePlayerShopListingsGUIClick(InventoryClickEvent event, Player player, Inventory inventory) {
+        if (!(inventory.getHolder() instanceof PlayerShopListingsGUI)) {
+            return;
+        }
+        
+        PlayerShopListingsGUI listingsGUI = (PlayerShopListingsGUI) inventory.getHolder();
+        int slot = event.getSlot();
+        
+        if (slot == 45) {
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType() != org.bukkit.Material.ARROW) {
+                return;
+            }
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            listingsGUI.setCurrentPage(listingsGUI.getCurrentPage() - 1);
+            listingsGUI.refresh();
+            return;
+        } else if (slot == 46) {
+            // 返回按钮：返回店铺详情
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            PlayerShopDetailGUI detailGUI = new PlayerShopDetailGUI(plugin, player, listingsGUI.getShopOwnerUuid(), listingsGUI.getShopOwnerName());
+            playerPlayerShopDetailGUIs.put(player.getUniqueId(), detailGUI);
+            detailGUI.open();
+            return;
+        } else if (slot == 53) {
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType() != org.bukkit.Material.ARROW) {
+                return;
+            }
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            listingsGUI.setCurrentPage(listingsGUI.getCurrentPage() + 1);
+            listingsGUI.refresh();
+            return;
+        } else if (slot == 49) {
+            // 刷新页面
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            listingsGUI.refresh();
+            return;
+        }
+        
+        if (slot >= 0 && slot < 45) {
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType().isAir()) {
+                return;
+            }
+
+            MarketItem item = null;
+
+            List<MarketItem> items = listingsGUI.getMarketItems();
+            int index = (listingsGUI.getCurrentPage() - 1) * 45 + slot;
+            if (items != null && index >= 0 && index < items.size()) {
+                item = items.get(index);
+            }
+
+            if (item == null) {
+                Integer itemId = extractMarketItemId(clickedItem);
+                if (itemId != null) {
+                    item = dbManager.getItemById(itemId);
+                }
+            }
+
+            if (item == null || item.isSold()) {
+                player.sendMessage(I18n.get(player, "error.item.notfound"));
+                listingsGUI.refresh();
+                return;
+            }
+
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            ItemDetailGUI detailGUI = new ItemDetailGUI(plugin, item);
+            detailGUI.setBackAction(() -> {
+                playerPlayerShopListingsGUIs.put(player.getUniqueId(), listingsGUI);
+                listingsGUI.open();
+            });
+            playerDetailGUIs.put(player.getUniqueId(), detailGUI);
+            detailGUI.open(player);
+        }
+    }
+
+    private void handlePlayerShopBuyOrdersGUIClick(InventoryClickEvent event, Player player, Inventory inventory) {
+        if (!(inventory.getHolder() instanceof PlayerShopBuyOrdersGUI)) {
+            return;
+        }
+        
+        PlayerShopBuyOrdersGUI buyOrdersGUI = (PlayerShopBuyOrdersGUI) inventory.getHolder();
+        int slot = event.getSlot();
+        
+        if (slot == 45) {
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType() != org.bukkit.Material.ARROW) {
+                return;
+            }
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            buyOrdersGUI.setCurrentPage(buyOrdersGUI.getCurrentPage() - 1);
+            buyOrdersGUI.refresh();
+            return;
+        } else if (slot == 46) {
+            // 返回按钮：返回店铺详情
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            PlayerShopDetailGUI detailGUI = new PlayerShopDetailGUI(plugin, player, buyOrdersGUI.getShopOwnerUuid(), buyOrdersGUI.getShopOwnerName());
+            playerPlayerShopDetailGUIs.put(player.getUniqueId(), detailGUI);
+            detailGUI.open();
+            return;
+        } else if (slot == 53) {
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType() != org.bukkit.Material.ARROW) {
+                return;
+            }
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            buyOrdersGUI.setCurrentPage(buyOrdersGUI.getCurrentPage() + 1);
+            buyOrdersGUI.refresh();
+            return;
+        } else if (slot == 49) {
+            // 刷新
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            buyOrdersGUI.refresh();
+            return;
+        }
+        
+        if (slot >= 0 && slot < 45) {
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || clickedItem.getType().isAir()) {
+                return;
+            }
+
+            BuyOrder order = null;
+
+            List<BuyOrder> orders = buyOrdersGUI.getBuyOrders();
+            int index = (buyOrdersGUI.getCurrentPage() - 1) * 28 + slot;
+            if (orders != null && index >= 0 && index < orders.size()) {
+                order = orders.get(index);
+            }
+
+            if (order == null) {
+                Integer orderId = extractBuyOrderId(clickedItem);
+                if (orderId != null) {
+                    order = dbManager.getBuyOrderById(orderId);
+                }
+            }
+
+            if (order == null || order.isFulfilled()) {
+                player.sendMessage(I18n.get(player, "error.item.notfound"));
+                buyOrdersGUI.refresh();
+                return;
+            }
+
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+
+            try {
+                BuyOrderDetailGUI detailGUI = new BuyOrderDetailGUI(plugin, order, player);
+                detailGUI.setBackAction(() -> {
+                    playerPlayerShopBuyOrdersGUIs.put(player.getUniqueId(), buyOrdersGUI);
+                    buyOrdersGUI.open();
+                });
+                playerBuyOrderDetailGUIs.put(player.getUniqueId(), detailGUI);
+                detailGUI.open();
+            } catch (Exception e) {
+                plugin.getLogger().severe(I18n.get("marketlistener.log.open_detail_failed", e.getMessage()));
+                e.printStackTrace();
+                player.sendMessage(I18n.get(player, "marketlistener.open_detail_failed", e.getMessage()));
+            }
+        }
     }
 
     @EventHandler
@@ -57,31 +222,31 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             
             int slot = event.getSlot();
             
-            if (slot == 10) {
+            if (slot == 11) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                 openMarketItemsGUI(player);
                 return;
-            } else if (slot == 12) {
+            } else if (slot == 13) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                 openBuyOrderGUI(player);
                 return;
-            } else if (slot == 13) {
+            } else if (slot == 15) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                 openPlayerShopGUI(player);
                 return;
-            } else if (slot == 14) {
+            } else if (slot == 29) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                 openMyListingsGUI(player);
                 return;
-            } else if (slot == 16) {
+            } else if (slot == 31) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                 openMyBuyOrdersGUI(player);
                 return;
-            } else if (slot == 22) {
+            } else if (slot == 33) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                 openWarehouseGUI(player);
                 return;
-            } else if (slot == 4) {
+            } else if (slot == 49) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
                 return;
             }
@@ -97,6 +262,10 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
         handleWarehouseGUIClick(event, player, inventory);
         handleModifyBuyOrderGUIClick(event, player, inventory);
         handlePlayerShopGUIClick(event, player, inventory);
+        handlePlayerShopSettingsGUIClick(event, player, inventory);
+        handlePlayerShopDetailGUIClick(event, player, inventory);
+        handlePlayerShopListingsGUIClick(event, player, inventory);
+        handlePlayerShopBuyOrdersGUIClick(event, player, inventory);
         handleAllPlayerShopsGUIClick(event, player, inventory);
     }
     
@@ -198,6 +367,16 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
                 AllPlayerShopsGUI allPlayerShopsGUI = playerAllPlayerShopsGUIs.remove(player.getUniqueId());
                 if (allPlayerShopsGUI != null) {
                     allPlayerShopsGUI.cleanup();
+                }
+            }
+        }
+        
+        if (event.getInventory().getHolder() instanceof PlayerShopDetailGUI) {
+            if (event.getPlayer() instanceof Player) {
+                Player player = (Player) event.getPlayer();
+                PlayerShopDetailGUI detailGUI = playerPlayerShopDetailGUIs.remove(player.getUniqueId());
+                if (detailGUI != null) {
+                    detailGUI.cleanup();
                 }
             }
         }
@@ -373,6 +552,10 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
 
         if (slot == 45) {
             // 上一页
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType() != org.bukkit.Material.ARROW) {
+                return;
+            }
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
             myBuyOrdersGUI.setCurrentPage(myBuyOrdersGUI.getCurrentPage() - 1);
             myBuyOrdersGUI.refresh();
@@ -393,6 +576,10 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             return;
         } else if (slot == 53) {
             // 下一页
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType() != org.bukkit.Material.ARROW) {
+                return;
+            }
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
             myBuyOrdersGUI.setCurrentPage(myBuyOrdersGUI.getCurrentPage() + 1);
             myBuyOrdersGUI.refresh();
@@ -531,6 +718,12 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             if (stored != null) {
                 stored.cleanup(player);
             }
+            
+            if (detailGUI.getBackAction() != null) {
+                detailGUI.getBackAction().run();
+                return;
+            }
+            
             BuyOrderGUI buyOrderGUI = playerBuyOrderGUIs.get(player.getUniqueId());
             if (buyOrderGUI != null) {
                 buyOrderGUI.refresh();
@@ -576,6 +769,12 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             if (order == null || order.isFulfilled() || order.getRemainingAmount() <= 0) {
                 player.sendMessage(I18n.get(player, "marketlistener.order_completed"));
                 detailGUI.refresh();
+                return;
+            }
+
+            // 禁止向自己的收购订单出售（管理员除外）
+            if (player.getUniqueId().equals(order.getBuyerUuid()) && !player.hasPermission("playermarket.admin")) {
+                player.sendMessage(I18n.get(player, "marketlistener.cannot_fulfill_own_order"));
                 return;
             }
 
@@ -647,6 +846,10 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             player.sendMessage(I18n.get(player, "trade.sell.success"));
             player.sendMessage(I18n.get(player, "marketlistener.item_sold", itemName + " x" + soldAmount));
             player.sendMessage(I18n.get(player, "trade.sell.received", economyManager.format(soldIncome)));
+
+            // 记录交易日志
+            String executorIp = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : "unknown";
+            dbManager.logTransaction(order.getBuyerUuid(), player.getUniqueId(), I18n.stripColorCodes(itemName), soldAmount, soldIncome, "ORDER_FILL", player.getUniqueId(), executorIp);
 
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                 String notificationMessage = "§a收购订单成交 §7| §e" + itemName + " x" + soldAmount +
@@ -796,6 +999,12 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
         
         if (slot == 45) {
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            
+            if (detailGUI.getBackAction() != null) {
+                detailGUI.getBackAction().run();
+                return;
+            }
+            
             MarketItemsGUI marketItemsGUI = playerMarketItemsGUIs.get(player.getUniqueId());
             if (marketItemsGUI != null) {
                 marketItemsGUI.open();
@@ -948,8 +1157,22 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             return;
         }
         
+        // 检查店铺是否打烊
+        boolean isOpen = plugin.getConfig().getBoolean("player-shops.open-status." + item.getSellerUuid(), true);
+        if (!isOpen) {
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
+            player.sendMessage(I18n.get(player, "shop.closed.purchase_denied"));
+            return;
+        }
+        
         if (item.isSold()) {
             player.sendMessage(I18n.get(player, "marketlistener.item_already_sold"));
+            return;
+        }
+        
+        // 禁止购买自己的商品（管理员除外）
+        if (player.getUniqueId().equals(item.getSellerUuid()) && !player.hasPermission("playermarket.admin")) {
+            player.sendMessage(I18n.get(player, "marketlistener.cannot_buy_own_item"));
             return;
         }
         
@@ -1047,6 +1270,10 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             }
             
             plugin.getLogger().info(I18n.get("marketlistener.log.purchase", player.getName(), I18n.stripColorCodes(I18n.getItemDisplayName(itemStack)), purchaseAmount));
+            
+            // 记录交易日志
+            String executorIp = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : "unknown";
+            dbManager.logTransaction(player.getUniqueId(), item.getSellerUuid(), I18n.stripColorCodes(itemName), purchaseAmount, totalPrice, "MARKET_BUY", player.getUniqueId(), executorIp);
         } else {
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
             player.sendMessage(I18n.get(player, "marketlistener.purchase_failed2"));
@@ -1075,6 +1302,11 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
             openAllPlayerShopsGUI(player);
             return;
+        } else if (slot == 49) {
+            // 店铺设置按钮（玩家头像）
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            openPlayerShopSettingsGUI(player);
+            return;
         }
         
         // 处理推荐店铺点击（槽位19-25, 28-34）
@@ -1082,8 +1314,17 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
         for (int featuredSlot : featuredSlots) {
             if (slot == featuredSlot) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
-                player.sendMessage(I18n.get(player, "player_shop.featured.clicked"));
-                // TODO: 打开具体店铺详情界面
+                
+                // 获取点击的店铺信息
+                PlayerShopGUI.FeaturedShopInfo shopInfo = playerShopGUI.getFeaturedShopInfo(slot);
+                if (shopInfo != null) {
+                    // 打开店铺详情界面
+                    PlayerShopDetailGUI detailGUI = new PlayerShopDetailGUI(plugin, player, shopInfo.getPlayerUuid(), shopInfo.getPlayerName());
+                    playerPlayerShopDetailGUIs.put(player.getUniqueId(), detailGUI);
+                    detailGUI.open();
+                } else {
+                    player.sendMessage(I18n.get(player, "player_shop.featured.clicked"));
+                }
                 return;
             }
         }
@@ -1123,8 +1364,17 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             ItemStack clickedItem = event.getCurrentItem();
             if (clickedItem != null && clickedItem.getType() == Material.PLAYER_HEAD) {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
-                player.sendMessage(I18n.get(player, "player_shop.all_shops.clicked"));
-                // TODO: 打开具体店铺详情界面
+                
+                // 获取点击的店铺信息
+                org.playermarket.model.PlayerShop shop = allPlayerShopsGUI.getShopBySlot(slot);
+                if (shop != null) {
+                    // 打开店铺详情界面
+                    PlayerShopDetailGUI detailGUI = new PlayerShopDetailGUI(plugin, player, shop.getPlayerUuid(), shop.getPlayerName());
+                    playerPlayerShopDetailGUIs.put(player.getUniqueId(), detailGUI);
+                    detailGUI.open();
+                } else {
+                    player.sendMessage(I18n.get(player, "player_shop.all_shops.clicked"));
+                }
                 return;
             }
         }
@@ -1139,5 +1389,61 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
         BuyOrderDetailGUI detailGUI = new BuyOrderDetailGUI(plugin, order, seller);
         playerBuyOrderDetailGUIs.put(seller.getUniqueId(), detailGUI);
         detailGUI.open();
+    }
+
+    private void handlePlayerShopSettingsGUIClick(InventoryClickEvent event, Player player, Inventory inventory) {
+        if (!(inventory.getHolder() instanceof org.playermarket.gui.PlayerShopSettingsGUI)) {
+            return;
+        }
+        int slot = event.getSlot();
+        if (slot == 8) {
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            openPlayerShopGUI(player);
+            return;
+        } else if (slot == 3 || slot == 5) {
+            boolean toOpen = (slot == 3);
+            String path = "player-shops.open-status." + player.getUniqueId();
+            plugin.getConfig().set(path, toOpen);
+            plugin.saveConfig();
+            String status = I18n.get(player, toOpen ? "player_shop.status.open" : "player_shop.status.closed");
+            player.sendMessage(I18n.get(player, "player_shop.settings.updated", status));
+            org.playermarket.gui.PlayerShopSettingsGUI settingsGUI = (org.playermarket.gui.PlayerShopSettingsGUI) inventory.getHolder();
+            settingsGUI.refresh();
+            return;
+        }
+    }
+    
+    private void handlePlayerShopDetailGUIClick(InventoryClickEvent event, Player player, Inventory inventory) {
+        if (!(inventory.getHolder() instanceof PlayerShopDetailGUI)) {
+            return;
+        }
+        
+        PlayerShopDetailGUI detailGUI = (PlayerShopDetailGUI) inventory.getHolder();
+        int slot = event.getSlot();
+        
+        if (slot == 49) {
+            // 返回按钮
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            PlayerShopDetailGUI storedGUI = playerPlayerShopDetailGUIs.remove(player.getUniqueId());
+            if (storedGUI != null) {
+                storedGUI.cleanup();
+            }
+            openAllPlayerShopsGUI(player);
+            return;
+        } else if (slot == 22) {
+            // 上架商品按钮
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            PlayerShopListingsGUI listingsGUI = new PlayerShopListingsGUI(plugin, player, detailGUI.getShopOwnerUuid(), detailGUI.getShopOwnerName());
+            playerPlayerShopListingsGUIs.put(player.getUniqueId(), listingsGUI);
+            listingsGUI.open();
+            return;
+        } else if (slot == 31) {
+            // 收购订单按钮
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
+            PlayerShopBuyOrdersGUI buyOrdersGUI = new PlayerShopBuyOrdersGUI(plugin, player, detailGUI.getShopOwnerUuid(), detailGUI.getShopOwnerName());
+            playerPlayerShopBuyOrdersGUIs.put(player.getUniqueId(), buyOrdersGUI);
+            buyOrdersGUI.open();
+            return;
+        }
     }
 }

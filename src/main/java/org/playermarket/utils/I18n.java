@@ -114,8 +114,10 @@ public class I18n {
     }
     
     public static void reload() {
+        ResourceBundle.clearCache();
         loadDefaultBundle();
-        // 不清除playerBundles，玩家自定义语言设置应保留
+        // 清除玩家缓存，以便重新加载
+        playerBundles.clear();
     }
     
     public static String getItemDisplayName(ItemStack itemStack) {

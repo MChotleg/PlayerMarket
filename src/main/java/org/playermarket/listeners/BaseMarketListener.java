@@ -17,6 +17,10 @@ import org.playermarket.gui.BuyOrderGUI;
 import org.playermarket.gui.BuyOrderDetailGUI;
 import org.playermarket.gui.MyBuyOrdersGUI;
 import org.playermarket.gui.PlayerShopGUI;
+import org.playermarket.gui.PlayerShopSettingsGUI;
+import org.playermarket.gui.PlayerShopDetailGUI;
+import org.playermarket.gui.PlayerShopListingsGUI;
+import org.playermarket.gui.PlayerShopBuyOrdersGUI;
 import org.playermarket.gui.AllPlayerShopsGUI;
 import org.playermarket.model.MarketItem;
 import org.playermarket.model.WarehouseItem;
@@ -52,6 +56,10 @@ public abstract class BaseMarketListener {
     protected final Map<UUID, ModifyBuyOrderGUI> playerModifyBuyOrderGUIs = new HashMap<>();
     protected final Map<UUID, PlayerShopGUI> playerPlayerShopGUIs = new HashMap<>();
     protected final Map<UUID, AllPlayerShopsGUI> playerAllPlayerShopsGUIs = new HashMap<>();
+    protected final Map<UUID, PlayerShopSettingsGUI> playerPlayerShopSettingsGUIs = new HashMap<>();
+    protected final Map<UUID, PlayerShopDetailGUI> playerPlayerShopDetailGUIs = new HashMap<>();
+    protected final Map<UUID, PlayerShopListingsGUI> playerPlayerShopListingsGUIs = new HashMap<>();
+    protected final Map<UUID, PlayerShopBuyOrdersGUI> playerPlayerShopBuyOrdersGUIs = new HashMap<>();
 
     public BaseMarketListener(PlayerMarket plugin) {
         this.plugin = plugin;
@@ -79,6 +87,10 @@ public abstract class BaseMarketListener {
             holder instanceof WarehouseGUI ||
             holder instanceof ModifyBuyOrderGUI ||
             holder instanceof PlayerShopGUI ||
+            holder instanceof PlayerShopSettingsGUI ||
+            holder instanceof PlayerShopDetailGUI ||
+            holder instanceof PlayerShopListingsGUI ||
+            holder instanceof PlayerShopBuyOrdersGUI ||
             holder instanceof AllPlayerShopsGUI;
     }
 
@@ -307,6 +319,12 @@ public abstract class BaseMarketListener {
         PlayerShopGUI playerShopGUI = new PlayerShopGUI(plugin, player);
         playerPlayerShopGUIs.put(player.getUniqueId(), playerShopGUI);
         playerShopGUI.open();
+    }
+
+    protected void openPlayerShopSettingsGUI(Player player) {
+        PlayerShopSettingsGUI settingsGUI = new PlayerShopSettingsGUI(plugin, player);
+        playerPlayerShopSettingsGUIs.put(player.getUniqueId(), settingsGUI);
+        settingsGUI.open();
     }
 
     /**

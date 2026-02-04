@@ -170,7 +170,11 @@ public class PlayerMarket extends JavaPlugin {
                         holder instanceof org.playermarket.gui.ItemDetailGUI ||
                         holder instanceof org.playermarket.gui.MyListingsGUI ||
                         holder instanceof org.playermarket.gui.DelistingDetailGUI ||
-                        holder instanceof org.playermarket.gui.WarehouseGUI) {
+                        holder instanceof org.playermarket.gui.WarehouseGUI ||
+                        holder instanceof org.playermarket.gui.AllPlayerShopsGUI ||
+                        holder instanceof org.playermarket.gui.PlayerShopGUI ||
+                        holder instanceof org.playermarket.gui.PlayerShopDetailGUI ||
+                        holder instanceof org.playermarket.gui.PlayerShopSettingsGUI) {
                         player.closeInventory();
                     }
                 }
@@ -221,7 +225,7 @@ public class PlayerMarket extends JavaPlugin {
     public EconomyManager getEconomyManager() {
         return economyManager;
     }
-    
+
     public DatabaseManager getDatabaseManager() {
         return databaseManager;
     }

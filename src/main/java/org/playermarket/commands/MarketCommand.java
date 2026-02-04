@@ -11,6 +11,8 @@ import org.playermarket.utils.I18n;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class MarketCommand implements CommandExecutor, TabExecutor {
     private final PlayerMarket plugin;
@@ -54,6 +56,10 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
                 case "defaultlang":
                 case "defaultlanguage":
                     return handleDefaultLanguageCommand(player, args);
+                case "audit":
+                    return handleAuditCommand(player, args);
+                case "featured":
+                    return handleFeaturedCommand(player, args);
                 default:
                     // 默认打开市场
                     return openMarket(player);
@@ -125,13 +131,16 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
         player.sendMessage(I18n.get(player, "command.help.title"));
         player.sendMessage(I18n.get(player, "command.help.open"));
         player.sendMessage(I18n.get(player, "command.help.balance"));
+        player.sendMessage(I18n.get(player, "command.help.lang"));
+        player.sendMessage(I18n.get(player, "command.help.help"));
+        
         if (player.hasPermission("playermarket.admin")) {
             player.sendMessage(I18n.get(player, "command.help.debug"));
             player.sendMessage(I18n.get(player, "command.help.reload"));
             player.sendMessage(I18n.get(player, "command.help.defaultlang"));
+            player.sendMessage(I18n.get(player, "command.help.audit"));
+            player.sendMessage(I18n.get(player, "command.help.featured"));
         }
-        player.sendMessage(I18n.get(player, "command.help.lang"));
-        player.sendMessage(I18n.get(player, "command.help.help"));
         return true;
     }
 
@@ -183,6 +192,141 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
         return true;
     }
 
+    private boolean handleAuditCommand(Player player, String[] args) {
+        if (!player.hasPermission("playermarket.admin")) {
+            player.sendMessage(I18n.get(player, "error.permission"));
+            return false;
+        }
+
+        double minAmount = 1000.0;
+        int minCount = 5;
+
+        if (args.length > 1) {
+            try {
+                minAmount = Double.parseDouble(args[1]);
+            } catch (NumberFormatException e) {
+                player.sendMessage(I18n.get(player, "command.audit.usage"));
+                return false;
+            }
+        }
+
+        if (args.length > 2) {
+            try {
+                minCount = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                player.sendMessage(I18n.get(player, "command.audit.usage"));
+                return false;
+            }
+        }
+
+        final double finalMinAmount = minAmount;
+        final int finalMinCount = minCount;
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<Map<String, Object>> suspicious = plugin.getDatabaseManager().getSuspiciousTransactions(finalMinAmount, finalMinCount);
+            
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                player.sendMessage(I18n.get(player, "command.audit.header", finalMinAmount, finalMinCount));
+                
+                if (suspicious.isEmpty()) {
+                    player.sendMessage(I18n.get(player, "command.audit.empty"));
+                    return;
+                }
+                
+                for (Map<String, Object> record : suspicious) {
+                    UUID buyerUuid = (UUID) record.get("buyer_uuid");
+                    UUID sellerUuid = (UUID) record.get("seller_uuid");
+                    String buyerName = Bukkit.getOfflinePlayer(buyerUuid).getName();
+                    String sellerName = Bukkit.getOfflinePlayer(sellerUuid).getName();
+                    
+                    if (buyerName == null) buyerName = buyerUuid.toString().substring(0, 8);
+                    if (sellerName == null) sellerName = sellerUuid.toString().substring(0, 8);
+                    
+                    player.sendMessage(I18n.get(player, "command.audit.format", 
+                        buyerName, 
+                        sellerName, 
+                        record.get("trade_count"), 
+                        String.format("%.2f", record.get("total_amount")),
+                        record.get("ips") != null ? ((String)record.get("ips")).split(",").length : 0
+                    ));
+                    
+                    if (record.get("ips") != null) {
+                         player.sendMessage("    §7IPs: " + record.get("ips"));
+                    }
+                }
+            });
+        });
+
+        return true;
+    }
+
+    private boolean handleFeaturedCommand(Player player, String[] args) {
+        if (!player.hasPermission("playermarket.admin")) {
+            player.sendMessage(I18n.get(player, "error.permission"));
+            return false;
+        }
+
+        if (args.length < 3) {
+            player.sendMessage(I18n.get(player, "command.featured.usage"));
+            return false;
+        }
+
+        String action = args[1].toLowerCase();
+        int slot;
+        try {
+            slot = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(I18n.get(player, "command.featured.invalid_slot"));
+            return false;
+        }
+
+        if (slot < 1 || slot > 14) {
+            player.sendMessage(I18n.get(player, "command.featured.invalid_slot"));
+            return false;
+        }
+
+        int index = slot - 1;
+        List<String> featuredShops = plugin.getConfig().getStringList("player-shops.featured-shops");
+        if (featuredShops == null) {
+            featuredShops = new ArrayList<>();
+        }
+
+        // 确保列表足够长
+        while (featuredShops.size() <= index) {
+            featuredShops.add("null");
+        }
+
+        if (action.equals("set")) {
+            if (args.length < 4) {
+                player.sendMessage(I18n.get(player, "command.featured.usage"));
+                return false;
+            }
+            String playerName = args[3];
+            org.bukkit.OfflinePlayer target = Bukkit.getOfflinePlayer(playerName);
+
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                player.sendMessage(I18n.get(player, "command.featured.player_not_found", playerName));
+                return false;
+            }
+
+            featuredShops.set(index, target.getUniqueId().toString());
+            plugin.getConfig().set("player-shops.featured-shops", featuredShops);
+            plugin.saveConfig();
+            player.sendMessage(I18n.get(player, "command.featured.set_success", slot, target.getName()));
+
+        } else if (action.equals("remove")) {
+            featuredShops.set(index, "null");
+            plugin.getConfig().set("player-shops.featured-shops", featuredShops);
+            plugin.saveConfig();
+            player.sendMessage(I18n.get(player, "command.featured.remove_success", slot));
+        } else {
+            player.sendMessage(I18n.get(player, "command.featured.usage"));
+            return false;
+        }
+
+        return true;
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
@@ -201,6 +345,8 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
                 commands.add("reload");
                 commands.add("defaultlang");
                 commands.add("defaultlanguage");
+                commands.add("audit");
+                commands.add("featured");
             }
 
             for (String cmd : commands) {
@@ -208,29 +354,49 @@ public class MarketCommand implements CommandExecutor, TabExecutor {
                     completions.add(cmd);
                 }
             }
-        } else if (args.length == 2) {
-            // 为语言相关命令添加补全
+        } else {
+            // 处理子命令参数补全
             String subCommand = args[0].toLowerCase();
+            
             if (subCommand.equals("lang") || subCommand.equals("language")) {
-                List<String> languages = new ArrayList<>();
-                languages.add("zh_CN");
-                languages.add("en_US");
-                languages.add("auto");
-                String partial = args[1].toLowerCase();
-                for (String lang : languages) {
-                    if (lang.toLowerCase().startsWith(partial)) {
-                        completions.add(lang);
+                if (args.length == 2) {
+                    List<String> languages = new ArrayList<>();
+                    languages.add("zh_CN");
+                    languages.add("en_US");
+                    languages.add("auto");
+                    String partial = args[1].toLowerCase();
+                    for (String lang : languages) {
+                        if (lang.toLowerCase().startsWith(partial)) {
+                            completions.add(lang);
+                        }
                     }
                 }
             } else if ((subCommand.equals("defaultlang") || subCommand.equals("defaultlanguage")) && sender.hasPermission("playermarket.admin")) {
-                List<String> languages = new ArrayList<>();
-                languages.add("zh_CN");
-                languages.add("en_US");
-                String partial = args[1].toLowerCase();
-                for (String lang : languages) {
-                    if (lang.toLowerCase().startsWith(partial)) {
-                        completions.add(lang);
+                if (args.length == 2) {
+                    List<String> languages = new ArrayList<>();
+                    languages.add("zh_CN");
+                    languages.add("en_US");
+                    String partial = args[1].toLowerCase();
+                    for (String lang : languages) {
+                        if (lang.toLowerCase().startsWith(partial)) {
+                            completions.add(lang);
+                        }
                     }
+                }
+            } else if (subCommand.equals("featured") && sender.hasPermission("playermarket.admin")) {
+                if (args.length == 2) {
+                    String partial = args[1].toLowerCase();
+                    if ("set".startsWith(partial)) completions.add("set");
+                    if ("remove".startsWith(partial)) completions.add("remove");
+                } else if (args.length == 3) {
+                    String partial = args[2].toLowerCase();
+                    for (int i = 1; i <= 14; i++) {
+                        if (String.valueOf(i).startsWith(partial)) {
+                            completions.add(String.valueOf(i));
+                        }
+                    }
+                } else if (args.length == 4 && args[1].equalsIgnoreCase("set")) {
+                    return null; // Return null to show player list
                 }
             }
         }

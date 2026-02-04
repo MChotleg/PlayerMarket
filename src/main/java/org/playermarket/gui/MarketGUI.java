@@ -35,7 +35,7 @@ public class MarketGUI implements InventoryHolder {
     public MarketGUI(PlayerMarket plugin) {
         this.plugin = plugin;
         this.marketGUITitle = plugin.getConfig().getString("market.title", I18n.get("market.title"));
-        this.holderInventory = Bukkit.createInventory(this, 27, I18n.get("market.title"));
+        this.holderInventory = Bukkit.createInventory(this, 54, I18n.get("market.title"));
     }
     
     public void openMarketGUI(Player player) {
@@ -57,7 +57,7 @@ public class MarketGUI implements InventoryHolder {
     }
     
     private Inventory createInventory(Player player) {
-        Inventory inventory = Bukkit.createInventory(this, 27, I18n.get(player, "market.title") + " - " + I18n.get(player, "market.main_menu"));
+        Inventory inventory = Bukkit.createInventory(this, 54, I18n.get(player, "market.title") + " - " + I18n.get(player, "market.main_menu"));
 
         ItemStack blackPane = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta blackMeta = blackPane.getItemMeta();
@@ -66,15 +66,16 @@ public class MarketGUI implements InventoryHolder {
             blackPane.setItemMeta(blackMeta);
         }
 
-        for (int i = 0; i < 27; i++) {
+        for (int i = 0; i < 54; i++) {
             inventory.setItem(i, blackPane);
         }
 
+        // Row 1: Main Market Features
         ItemStack buyMarketButton = createPageButton(I18n.get(player, "market.buy"), Material.EMERALD_BLOCK, I18n.get(player, "market.main.buy.lore"));
-        inventory.setItem(10, buyMarketButton);
+        inventory.setItem(11, buyMarketButton);
 
         ItemStack sellMarketButton = createPageButton(I18n.get(player, "market.sell"), Material.DIAMOND_BLOCK, I18n.get(player, "market.main.sell.lore"));
-        inventory.setItem(12, sellMarketButton);
+        inventory.setItem(13, sellMarketButton);
 
         ItemStack playerShopButton = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta playerShopMeta = (SkullMeta) playerShopButton.getItemMeta();
@@ -86,17 +87,19 @@ public class MarketGUI implements InventoryHolder {
             playerShopMeta.setOwningPlayer(player);
             playerShopButton.setItemMeta(playerShopMeta);
         }
-        inventory.setItem(13, playerShopButton);
+        inventory.setItem(15, playerShopButton);
 
+        // Row 3: Personal Features
         ItemStack myListingsButton = createPageButton(I18n.get(player, "market.mylistings"), Material.CHEST, I18n.get(player, "market.main.mylistings.lore"));
-        inventory.setItem(14, myListingsButton);
+        inventory.setItem(29, myListingsButton);
 
         ItemStack myBuyOrdersButton = createPageButton(I18n.get(player, "market.mybuys"), Material.CHEST, I18n.get(player, "market.main.mybuys.lore"));
-        inventory.setItem(16, myBuyOrdersButton);
+        inventory.setItem(31, myBuyOrdersButton);
 
         ItemStack warehouseButton = createPageButton(I18n.get(player, "market.warehouse"), Material.ENDER_CHEST, I18n.get(player, "market.main.warehouse.lore"));
-        inventory.setItem(22, warehouseButton);
+        inventory.setItem(33, warehouseButton);
 
+        // Row 5: Help
         ItemStack helpBook = new ItemStack(Material.WRITTEN_BOOK);
         ItemMeta helpMeta = helpBook.getItemMeta();
         if (helpMeta != null) {
@@ -110,7 +113,7 @@ public class MarketGUI implements InventoryHolder {
             helpMeta.setLore(lore);
             helpBook.setItemMeta(helpMeta);
         }
-        inventory.setItem(4, helpBook);
+        inventory.setItem(49, helpBook);
 
         return inventory;
     }
