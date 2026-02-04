@@ -1,6 +1,6 @@
 name: PlayerMarket
 api: ['1.20']
-version: "1.1"
+version: "1.2"
 main: org.playermarket.PlayerMarket
 api-version: '1.20'
 description: Player trading market plugin

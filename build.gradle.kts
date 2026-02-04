@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.playermarket"
-version = "1.1"
+version = "1.2"
 
 description = "玩家间的中央交易市场系统"
 
