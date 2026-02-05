@@ -2,7 +2,7 @@ package org.playermarket.utils;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.playermarket.PlayerMarket;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -11,9 +11,9 @@ import java.net.URL;
 import java.util.Locale;
 
 public class UpdateChecker {
-    private final JavaPlugin plugin;
+    private final PlayerMarket plugin;
 
-    public UpdateChecker(JavaPlugin plugin) {
+    public UpdateChecker(PlayerMarket plugin) {
         this.plugin = plugin;
     }
 
@@ -31,51 +31,78 @@ public class UpdateChecker {
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                String latestVersion;
-                String latestUrl = url;
+            int maxRetries = 3;
+            int attempt = 0;
+            boolean success = false;
+            
+            while (attempt < maxRetries && !success) {
+                attempt++;
+                try {
+                    String latestVersion;
+                    String latestUrl = url;
 
-                URL u = new URL(url);
-                HttpsURLConnection conn = (HttpsURLConnection) u.openConnection();
-                conn.setRequestProperty("User-Agent", "PlayerMarket UpdateChecker");
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
-
-                StringBuilder sb = new StringBuilder();
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        sb.append(line);
+                    if (attempt > 1) {
+                        plugin.getLogger().info("重试检查更新... (第 " + attempt + " 次)");
+                    } else {
+                        plugin.getLogger().info("正在检查更新... (URL: " + url + ")");
                     }
-                }
-                String body = sb.toString().trim();
+                    
+                    URL u = new URL(url);
+                    HttpsURLConnection conn = (HttpsURLConnection) u.openConnection();
+                    conn.setRequestProperty("User-Agent", "PlayerMarket UpdateChecker");
+                    conn.setConnectTimeout(30000);
+                    conn.setReadTimeout(30000);
 
-                if (body.startsWith("{") && body.endsWith("}")) {
-                    String v = extractJson(body, "version");
-                    String link = extractJson(body, "url");
-                    latestVersion = v != null ? v.trim() : plugin.getDescription().getVersion();
-                    if (link != null && !link.isEmpty()) latestUrl = link.trim();
-                } else {
-                    latestVersion = body;
-                }
-
-                String currentVersion = plugin.getDescription().getVersion();
-                if (isUpdateAvailable(currentVersion, latestVersion)) {
-                    if (notifyConsole) {
-                        plugin.getLogger().info(I18n.get("update.available", currentVersion, latestVersion));
-                        plugin.getLogger().info(I18n.get("update.url", latestUrl));
+                    StringBuilder sb = new StringBuilder();
+                    try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            sb.append(line);
+                        }
                     }
-                    if (notifyPlayers) {
-                        for (Player p : Bukkit.getOnlinePlayers()) {
-                            if (p.hasPermission(permission)) {
-                                p.sendMessage(I18n.get(p, "update.available", currentVersion, latestVersion));
-                                p.sendMessage(I18n.get(p, "update.url", latestUrl));
+                    String body = sb.toString().trim();
+                    plugin.getLogger().info("获取到的版本信息: " + body);
+
+                    if (body.startsWith("{") && body.endsWith("}")) {
+                        String v = extractJson(body, "version");
+                        String link = extractJson(body, "url");
+                        latestVersion = v != null ? v.trim() : plugin.getDescription().getVersion();
+                        if (link != null && !link.isEmpty()) latestUrl = link.trim();
+                    } else {
+                        latestVersion = body;
+                    }
+
+                    String currentVersion = plugin.getDescription().getVersion();
+                    plugin.getLogger().info("[Debug] UpdateCheck - Local: " + currentVersion + ", Remote: " + latestVersion);
+                    
+                    if (isUpdateAvailable(currentVersion, latestVersion)) {
+                        plugin.getLogger().info("[Debug] UpdateCheck - Update found! Setting new version.");
+                        plugin.setNewVersion(latestVersion);
+                        plugin.setUpdateUrl(latestUrl);
+                        if (notifyConsole) {
+                            plugin.getLogger().info(I18n.get("update.available", currentVersion, latestVersion));
+                            plugin.getLogger().info(I18n.get("update.url", latestUrl));
+                        }
+                        if (notifyPlayers) {
+                            for (Player p : Bukkit.getOnlinePlayers()) {
+                                if (p.hasPermission(permission)) {
+                                    p.sendMessage(I18n.get(p, "update.available", currentVersion, latestVersion));
+                                    p.sendMessage(I18n.get(p, "update.url", latestUrl));
+                                }
                             }
                         }
                     }
+                    success = true;
+                } catch (Exception e) {
+                    plugin.getLogger().warning(I18n.get("update.check.failed", e.getMessage()));
+                    if (attempt >= maxRetries) {
+                        e.printStackTrace();
+                    } else {
+                        try {
+                            Thread.sleep(2000); // Wait 2 seconds before retry
+                        } catch (InterruptedException ignored) {}
+                    }
                 }
-            } catch (Exception e) {
-                plugin.getLogger().warning(I18n.get("update.check.failed", e.getMessage()));
             }
         });
     }
@@ -106,12 +133,15 @@ public class UpdateChecker {
     }
 
     private String extractJson(String json, String key) {
-        String pattern = "\"" + key + "\"\\s*:\\s*\"";
-        int start = json.indexOf(pattern);
-        if (start < 0) return null;
-        start = start + pattern.length();
-        int end = json.indexOf("\"", start);
-        if (end < 0) return null;
-        return json.substring(start, end);
+        try {
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
+            java.util.regex.Matcher matcher = pattern.matcher(json);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

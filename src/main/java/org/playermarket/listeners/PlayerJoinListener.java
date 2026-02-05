@@ -23,6 +23,24 @@ public class PlayerJoinListener extends BaseMarketListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+
+        // 调试日志：检查更新提示逻辑
+        String newVersion = plugin.getNewVersion();
+        boolean hasPerm = player.hasPermission("playermarket.update");
+        String currentVersion = plugin.getDescription().getVersion();
+        
+        plugin.getLogger().info("[Debug] PlayerJoin - Name: " + player.getName());
+        plugin.getLogger().info("[Debug] PlayerJoin - CurrentVer: " + currentVersion);
+        plugin.getLogger().info("[Debug] PlayerJoin - NewVerCached: " + newVersion);
+        plugin.getLogger().info("[Debug] PlayerJoin - HasPerm: " + hasPerm);
+
+        if (newVersion != null && hasPerm) {
+            player.sendMessage(I18n.get(player, "update.available", currentVersion, newVersion));
+            String url = plugin.getUpdateUrl();
+            if (url != null && !url.isEmpty()) {
+                player.sendMessage(I18n.get(player, "update.url", url));
+            }
+        }
         
         // 异步获取并显示未读通知
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {

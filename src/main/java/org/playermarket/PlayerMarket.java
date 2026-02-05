@@ -26,16 +26,19 @@ public class PlayerMarket extends JavaPlugin {
     private PurCommand purCommandExecutor;
     private EconomyManager economyManager;
     private DatabaseManager databaseManager;
+    private String newVersion = null;
+    private String updateUrl = null;
 
     @Override
     public void onEnable() {
         instance = this;
-        getLogger().info(I18n.get("plugin.starting"));
-
+        
         try {
-            initConfig();
-
+            // 初始化I18n (必须在第一位，否则后续日志无法获取翻译)
+            initConfig(); // Config needed for I18n language selection
             I18n.initialize(this);
+            
+            getLogger().info(I18n.get("plugin.starting"));
 
             economyManager = new EconomyManager(this);
 
@@ -46,7 +49,7 @@ public class PlayerMarket extends JavaPlugin {
             initListeners();
 
             // bStats Metrics
-            int pluginId = 29299; // TODO: 替换为你的bStats插件ID
+            int pluginId = 29299;
             Metrics metrics = new Metrics(this, pluginId);
 
             //统计插件版本分布
@@ -228,5 +231,21 @@ public class PlayerMarket extends JavaPlugin {
 
     public DatabaseManager getDatabaseManager() {
         return databaseManager;
+    }
+
+    public void setNewVersion(String version) {
+        this.newVersion = version;
+    }
+
+    public String getNewVersion() {
+        return newVersion;
+    }
+
+    public void setUpdateUrl(String url) {
+        this.updateUrl = url;
+    }
+
+    public String getUpdateUrl() {
+        return updateUrl;
     }
 }

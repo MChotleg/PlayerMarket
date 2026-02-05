@@ -38,7 +38,7 @@ updates:
   check-at-start: true
   check-interval-seconds: 86400
   notify-console: true
-  notify-players: false
+  notify-players: true
   permission: "playermarket.update"
   check-url: "https://raw.githubusercontent.com/mchotleg/PlayerMarket/main/.update/latest.json"
 

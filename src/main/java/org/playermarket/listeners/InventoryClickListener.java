@@ -107,10 +107,20 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
 
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.0f);
             ItemDetailGUI detailGUI = new ItemDetailGUI(plugin, item);
+            
+            // 保存状态以重新创建 GUI，避免旧对象状态问题
+            final UUID shopOwnerUuid = listingsGUI.getShopOwnerUuid();
+            final String shopOwnerName = listingsGUI.getShopOwnerName();
+            final int currentPage = listingsGUI.getCurrentPage();
+            
             detailGUI.setBackAction(() -> {
-                playerPlayerShopListingsGUIs.put(player.getUniqueId(), listingsGUI);
-                listingsGUI.open();
+                // 重新创建 PlayerShopListingsGUI
+                PlayerShopListingsGUI newGUI = new PlayerShopListingsGUI(plugin, player, shopOwnerUuid, shopOwnerName);
+                newGUI.setCurrentPage(currentPage);
+                playerPlayerShopListingsGUIs.put(player.getUniqueId(), newGUI);
+                // 构造函数中会自动 refresh 并 open，不需要显式调用 open
             });
+            
             playerDetailGUIs.put(player.getUniqueId(), detailGUI);
             detailGUI.open(player);
         }
@@ -1024,7 +1034,7 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             detailGUI.decreaseMultiplier(player);
         } else if (slot == 49) {
             int purchaseAmount = detailGUI.getPurchaseAmount(player);
-            purchaseItem(player, detailGUI.getMarketItem(), purchaseAmount);
+            purchaseItem(player, detailGUI.getMarketItem(), purchaseAmount, detailGUI.getBackAction());
         }
     }
     
@@ -1126,8 +1136,44 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
             int newAmount = modifyGUI.getNewAmount();
             BuyOrder buyOrder = modifyGUI.getBuyOrder();
             
+            int oldAmount = buyOrder.getAmount();
+            if (newAmount == oldAmount) {
+                player.sendMessage(I18n.get(player, "marketlistener.modify_no_change"));
+                return;
+            }
+
+            // 检查数量是否低于已成交数量
+            int filledAmount = oldAmount - buyOrder.getRemainingAmount();
+            if (newAmount < filledAmount) {
+                player.sendMessage(I18n.get(player, "marketlistener.modify_amount_too_low", filledAmount));
+                return;
+            }
+            
+            double unitPrice = buyOrder.getUnitPrice();
+            double diffCost = (newAmount - oldAmount) * unitPrice;
+            
+            // 如果增加数量，检查余额并扣款
+            if (diffCost > 0) {
+                double balance = economyManager.getBalance(player);
+                if (balance < diffCost) {
+                    player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
+                    player.sendMessage(I18n.get(player, "marketlistener.insufficient_funds"));
+                    player.sendMessage(I18n.get(player, "marketlistener.funds_needed", economyManager.format(diffCost)));
+                    player.sendMessage(I18n.get(player, "marketlistener.funds_have", economyManager.format(balance)));
+                    return;
+                }
+                
+                economyManager.withdraw(player, diffCost);
+            }
+            
             boolean updated = dbManager.updateBuyOrderAmount(buyOrder.getId(), player.getUniqueId(), newAmount);
             if (updated) {
+                // 如果减少数量，退款
+                if (diffCost < 0) {
+                    economyManager.deposit(player, Math.abs(diffCost));
+                    player.sendMessage(I18n.get(player, "marketlistener.modify_refund", economyManager.format(Math.abs(diffCost)))); // 需要添加这个键
+                }
+                
                 player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.0f);
                 player.sendMessage(I18n.get(player, "marketlistener.modify_success"));
                 
@@ -1144,6 +1190,11 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
                     openMyBuyOrdersGUI(player);
                 }
             } else {
+                // 更新失败，回滚扣款
+                if (diffCost > 0) {
+                    economyManager.deposit(player, diffCost);
+                }
+                
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.5f, 1.0f);
                 player.sendMessage(I18n.get(player, "marketlistener.modify_failed"));
             }
@@ -1151,7 +1202,7 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
         }
     }
     
-    private void purchaseItem(Player player, MarketItem item, int purchaseAmount) {
+    private void purchaseItem(Player player, MarketItem item, int purchaseAmount, Runnable successAction) {
         if (item == null) {
             player.sendMessage(I18n.get(player, "marketlistener.item_not_exist"));
             return;
@@ -1261,12 +1312,18 @@ public class InventoryClickListener extends BaseMarketListener implements Listen
                 detailGUI.cleanup(player);
             }
 
-            MarketItemsGUI marketItemsGUI = playerMarketItemsGUIs.get(player.getUniqueId());
-            if (marketItemsGUI != null) {
-                marketItemsGUI.refresh();
-                marketItemsGUI.open();
+            if (successAction != null) {
+                // plugin.getLogger().info("Executing purchase success action for player " + player.getName());
+                successAction.run();
             } else {
-                openMarketItemsGUI(player);
+                // plugin.getLogger().info("No success action found for player " + player.getName() + ", returning to market");
+                MarketItemsGUI marketItemsGUI = playerMarketItemsGUIs.get(player.getUniqueId());
+                if (marketItemsGUI != null) {
+                    marketItemsGUI.refresh();
+                    marketItemsGUI.open();
+                } else {
+                    openMarketItemsGUI(player);
+                }
             }
             
             plugin.getLogger().info(I18n.get("marketlistener.log.purchase", player.getName(), I18n.stripColorCodes(I18n.getItemDisplayName(itemStack)), purchaseAmount));

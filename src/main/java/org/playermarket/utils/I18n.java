@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class I18n {
     private static final ConcurrentHashMap<Player, ResourceBundle> playerBundles = new ConcurrentHashMap<>();
     private static ResourceBundle defaultBundle;
+    private static ResourceBundle fallbackBundle;
     private static PlayerMarket plugin;
     
     public static void initialize(PlayerMarket pluginInstance) {
@@ -38,17 +39,39 @@ public class I18n {
 
     private static void loadDefaultBundle() {
         String defaultLang = plugin.getConfig().getString("language.default", "en_US");
+        
+        // 1. 尝试从文件加载自定义语言包
         defaultBundle = loadBundleFromFile(defaultLang);
+        
+        // 2. 始终加载JAR包内的语言包作为后备
+        fallbackBundle = loadBundleFromJar(defaultLang);
+        if (fallbackBundle == null) {
+            // 如果指定语言的后备包加载失败，尝试加载默认英文后备包
+            fallbackBundle = loadBundleFromJar("en_US");
+        }
+
+        // 如果文件加载失败，直接使用后备包作为主包
         if (defaultBundle == null) {
-            Locale locale = parseLocale(defaultLang);
-            try {
-                defaultBundle = ResourceBundle.getBundle("messages", locale);
-            } catch (Exception e) {
-                defaultBundle = ResourceBundle.getBundle("messages", new Locale("en", "US"));
-            }
+            defaultBundle = fallbackBundle;
         }
     }
     
+    private static ResourceBundle loadBundleFromJar(String lang) {
+        if (lang == null || lang.equalsIgnoreCase("auto")) {
+            return null;
+        }
+        
+        String fileName = "messages_" + lang + ".properties";
+        try (java.io.InputStream is = plugin.getResource(fileName)) {
+            if (is != null) {
+                return new PropertyResourceBundle(new InputStreamReader(is, StandardCharsets.UTF_8));
+            }
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to load fallback language file from JAR: " + fileName);
+        }
+        return null;
+    }
+
     private static ResourceBundle loadBundleFromFile(String lang) {
         if (lang == null || lang.equalsIgnoreCase("auto")) {
             return null;
@@ -102,11 +125,11 @@ public class I18n {
             return;
         }
 
-        Locale locale = parseLocale(lang);
-        try {
-            bundle = ResourceBundle.getBundle("messages", locale);
+        // 如果文件不存在，尝试从JAR加载
+        bundle = loadBundleFromJar(lang);
+        if (bundle != null) {
             playerBundles.put(player, bundle);
-        } catch (Exception e) {
+        } else {
             playerBundles.remove(player);
         }
     }
@@ -134,8 +157,16 @@ public class I18n {
             return get(key, args);
         }
         ResourceBundle bundle = getPlayerBundle(player);
+        String message = key;
+        
         try {
-            String message = bundle.getString(key);
+            if (bundle != null && bundle.containsKey(key)) {
+                message = bundle.getString(key);
+            } else if (fallbackBundle != null && fallbackBundle.containsKey(key)) {
+                // 如果玩家特定的包（或默认包）中没有该键，尝试从后备包中获取
+                message = fallbackBundle.getString(key);
+            }
+            
             if (args.length > 0) {
                 return String.format(message, args);
             }
@@ -146,8 +177,14 @@ public class I18n {
     }
     
     public static String get(String key, Object... args) {
+        String message = key;
         try {
-            String message = defaultBundle.getString(key);
+            if (defaultBundle != null && defaultBundle.containsKey(key)) {
+                message = defaultBundle.getString(key);
+            } else if (fallbackBundle != null && fallbackBundle.containsKey(key)) {
+                message = fallbackBundle.getString(key);
+            }
+            
             if (args.length > 0) {
                 return String.format(message, args);
             }

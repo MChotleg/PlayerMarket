@@ -61,12 +61,19 @@ public class AllPlayerShopsGUI implements InventoryHolder {
                 continue;
             }
             
-            // 创建店铺，使用默认格式"玩家名字的店铺"
+            // 检查是否为推荐店铺（从配置读取）
+            List<String> featuredShopUUIDs = plugin.getConfig().getStringList("player-shops.featured-shops");
+            boolean isRecommended = featuredShopUUIDs.contains(playerUuid.toString());
+
+            String nameKey = isRecommended ? "player_shop.featured.default_name" : "player_shop.detail.shop_name";
+            String descKey = isRecommended ? "player_shop.featured.default_description" : "player_shop.default_description";
+            
+            // 创建店铺
             PlayerShop shop = new PlayerShop(
                 playerUuid, 
                 playerName,
-                I18n.get(player, "player_shop.featured.default_name", playerName),
-                I18n.get(player, "player_shop.featured.default_description", playerName)
+                I18n.get(player, nameKey, playerName),
+                I18n.get(player, descKey, playerName)
             );
             shop.setTotalListings(listingsCount);
             shop.setTotalBuyOrders(buyOrdersCount);
@@ -75,9 +82,6 @@ public class AllPlayerShopsGUI implements InventoryHolder {
             shop.setTotalSalesAmount(salesAmount);
             shop.setTotalPurchasesAmount(purchasesAmount);
             
-            // 检查是否为推荐店铺（从配置读取）
-            List<String> featuredShopUUIDs = plugin.getConfig().getStringList("player-shops.featured-shops");
-            boolean isRecommended = featuredShopUUIDs.contains(playerUuid.toString());
             shop.setRecommended(isRecommended);
 
             boolean isOpen = plugin.getConfig().getBoolean("player-shops.open-status." + playerUuid.toString(), true);
