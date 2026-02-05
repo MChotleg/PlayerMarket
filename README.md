@@ -11,6 +11,8 @@
 **中文**：
 - 购买市场：浏览和购买其他玩家上架的商品
 - 求购市场：发布求购订单，等待其他玩家出售
+- 玩家店铺：浏览特定玩家的个人店铺，查看其所有上架商品
+- 全服名录：按活跃度浏览全服玩家店铺，发现热门商家
 - 我的上架：管理自己上架的商品（调整数量、下架）
 - 我的收购：管理自己发布的求购订单（修改数量、取消）
 - 我的仓库：存放购买或收购的物品，支持一键取出
@@ -18,6 +20,8 @@
 **English**：
 - Buy Market: Browse and purchase items listed by other players
 - Buy Order Market: Create buy orders and wait for other players to sell
+- Player Shops: Browse specific player's shop and view all their listings
+- Shop Directory: Browse all player shops sorted by activity to find popular sellers
 - My Listings: Manage your listed items (adjust quantity, delist)
 - My Buy Orders: Manage your buy orders (modify quantity, cancel)
 - Warehouse: Store purchased or acquired items, with one-click withdrawal
@@ -234,6 +238,23 @@ The following configuration items are currently not implemented and reserved for
 
 
 ### 📊 更新日志（Changelog）
+
+#### v1.2
+**中文**：
+- 🏪 **玩家店铺系统重构**：全新 54 格主菜单布局，操作更直观
+- ⭐ **推荐店铺机制**：管理员可设置推荐店铺，优质商家将在主页优先展示
+- 📋 **全服店铺名录**：新增"查看所有店铺"功能，按交易活跃度排序浏览全服玩家
+- ⚙️ **店铺营业管理**：玩家可自主设置店铺"营业/打烊"状态，灵活管理交易时间
+- 🛡️ **安全与管理**：新增 `/pm audit` 交易审计指令与交易自购限制
+- 🌍 **体验优化**：修复国际化显示问题，优化帮助菜单
+
+**English**：
+- 🏪 **Player Shop Overhaul**: Brand new 54-slot main menu layout for intuitive navigation
+- ⭐ **Featured Shops**: Admins can highlight trusted shops to appear on the main page
+- 📋 **Shop Directory**: Browse all player shops, sorted by transaction activity
+- ⚙️ **Shop Management**: Players can toggle "Open/Closed" status for their shops
+- 🛡️ **Security & Admin**: Added `/pm audit` for transaction auditing and self-purchase restrictions
+- 🌍 **Experience Improvements**: Fixed localization issues and optimized help menu
 
 #### v1.1
 **中文**：
