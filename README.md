@@ -11,6 +11,8 @@
 **中文**：
 - 购买市场：浏览和购买其他玩家上架的商品
 - 求购市场：发布求购订单，等待其他玩家出售
+- 玩家店铺：浏览特定玩家的个人店铺，查看其所有上架商品
+- 全服名录：按活跃度浏览全服玩家店铺，发现热门商家
 - 我的上架：管理自己上架的商品（调整数量、下架）
 - 我的收购：管理自己发布的求购订单（修改数量、取消）
 - 我的仓库：存放购买或收购的物品，支持一键取出
@@ -18,6 +20,8 @@
 **English**：
 - Buy Market: Browse and purchase items listed by other players
 - Buy Order Market: Create buy orders and wait for other players to sell
+- Player Shops: Browse specific player's shop and view all their listings
+- Shop Directory: Browse all player shops sorted by activity to find popular sellers
 - My Listings: Manage your listed items (adjust quantity, delist)
 - My Buy Orders: Manage your buy orders (modify quantity, cancel)
 - Warehouse: Store purchased or acquired items, with one-click withdrawal
@@ -226,12 +230,9 @@ The following configuration items are currently not implemented and reserved for
 | `/playermarket` | 打开市场主界面 | Open market main interface | `playermarket.use` | 无 (none) |
 | `/playermarket balance` | 查看个人余额 | Check personal balance | `playermarket.use` | 无 (none) |
 | `/playermarket lang` | 设置个人语言 | Set personal language | `playermarket.use` | `<zh_CN\|en_US\|auto>` |
-| `/playermarket help` | 查看帮助菜单 | View help menu | `playermarket.use` | 无 (none) |
 | `/playermarket defaultlang` | 设置服务器默认语言 | Set server default language | `playermarket.admin` | `<zh_CN\|en_US>` |
 | `/playermarket reload` | 重载配置文件 | Reload configuration file | `playermarket.admin` | 无 (none) |
 | `/playermarket debug` | 显示调试信息 | Display debug information | `playermarket.admin` | 无 (none) |
-| `/playermarket audit` | 审计可疑交易 | Audit suspicious transactions | `playermarket.admin` | `[amount] [count]` |
-| `/playermarket featured` | 管理推荐店铺 | Manage featured shops | `playermarket.admin` | `<set\|remove> <slot> [player]` |
 | `/manuela` | 快速上架手中物品 | Quickly list held item | `playermarket.use` | `<数量> <单价>` (quantity price) |
 | `/pur` | 快速发布求购订单 | Quickly create buy order | `playermarket.use` | `<数量> <单价>` (quantity price) |
 
@@ -240,20 +241,20 @@ The following configuration items are currently not implemented and reserved for
 
 #### v1.2
 **中文**：
-- 🎨 **GUI布局升级**：主菜单升级为54格布局，采用中心对称设计，操作更便捷
-- 🌍 **国际化同步**：修复了中英文语言文件的键值缺失，确保双语体验一致
-- 🔧 **I18n机制优化**：支持语言文件自动释放与热重载，方便用户自定义翻译
-- 🛡️ **安全审计**：新增`/pm audit`命令，帮助管理员发现异常交易行为
-- ⭐ **推荐店铺**：新增推荐店铺功能，管理员可设置展示位推广优质商家
-- 🐛 **修复问题**：修复了颜色代码导致的异常，优化了帮助菜单显示
+- 🏪 **玩家店铺系统重构**：全新 54 格主菜单布局，操作更直观
+- ⭐ **推荐店铺机制**：管理员可设置推荐店铺，优质商家将在主页优先展示
+- 📋 **全服店铺名录**：新增"查看所有店铺"功能，按交易活跃度排序浏览全服玩家
+- ⚙️ **店铺营业管理**：玩家可自主设置店铺"营业/打烊"状态，灵活管理交易时间
+- 🛡️ **安全与管理**：新增 `/pm audit` 交易审计指令与交易自购限制
+- 🌍 **体验优化**：修复国际化显示问题，优化帮助菜单
 
 **English**：
-- 🎨 **GUI Layout Upgrade**: Main menu upgraded to 54-slot layout with symmetric design for better usability
-- 🌍 **Localization Sync**: Fixed missing keys in language files ensuring consistent bilingual experience
-- 🔧 **I18n Optimization**: Added auto-release and hot-reload for language files, allowing user customization
-- 🛡️ **Security Audit**: Added `/pm audit` command to help admins detect suspicious transactions
-- ⭐ **Featured Shops**: Added featured shops functionality, allowing admins to promote trusted sellers
-- 🐛 **Bug Fixes**: Fixed color code issues and optimized help menu display
+- 🏪 **Player Shop Overhaul**: Brand new 54-slot main menu layout for intuitive navigation
+- ⭐ **Featured Shops**: Admins can highlight trusted shops to appear on the main page
+- 📋 **Shop Directory**: Browse all player shops, sorted by transaction activity
+- ⚙️ **Shop Management**: Players can toggle "Open/Closed" status for their shops
+- 🛡️ **Security & Admin**: Added `/pm audit` for transaction auditing and self-purchase restrictions
+- 🌍 **Experience Improvements**: Fixed localization issues and optimized help menu
 
 #### v1.1
 **中文**：
