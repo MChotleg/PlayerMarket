@@ -226,14 +226,34 @@ The following configuration items are currently not implemented and reserved for
 | `/playermarket` | 打开市场主界面 | Open market main interface | `playermarket.use` | 无 (none) |
 | `/playermarket balance` | 查看个人余额 | Check personal balance | `playermarket.use` | 无 (none) |
 | `/playermarket lang` | 设置个人语言 | Set personal language | `playermarket.use` | `<zh_CN\|en_US\|auto>` |
+| `/playermarket help` | 查看帮助菜单 | View help menu | `playermarket.use` | 无 (none) |
 | `/playermarket defaultlang` | 设置服务器默认语言 | Set server default language | `playermarket.admin` | `<zh_CN\|en_US>` |
 | `/playermarket reload` | 重载配置文件 | Reload configuration file | `playermarket.admin` | 无 (none) |
 | `/playermarket debug` | 显示调试信息 | Display debug information | `playermarket.admin` | 无 (none) |
+| `/playermarket audit` | 审计可疑交易 | Audit suspicious transactions | `playermarket.admin` | `[amount] [count]` |
+| `/playermarket featured` | 管理推荐店铺 | Manage featured shops | `playermarket.admin` | `<set\|remove> <slot> [player]` |
 | `/manuela` | 快速上架手中物品 | Quickly list held item | `playermarket.use` | `<数量> <单价>` (quantity price) |
 | `/pur` | 快速发布求购订单 | Quickly create buy order | `playermarket.use` | `<数量> <单价>` (quantity price) |
 
 
 ### 📊 更新日志（Changelog）
+
+#### v1.2
+**中文**：
+- 🎨 **GUI布局升级**：主菜单升级为54格布局，采用中心对称设计，操作更便捷
+- 🌍 **国际化同步**：修复了中英文语言文件的键值缺失，确保双语体验一致
+- 🔧 **I18n机制优化**：支持语言文件自动释放与热重载，方便用户自定义翻译
+- 🛡️ **安全审计**：新增`/pm audit`命令，帮助管理员发现异常交易行为
+- ⭐ **推荐店铺**：新增推荐店铺功能，管理员可设置展示位推广优质商家
+- 🐛 **修复问题**：修复了颜色代码导致的异常，优化了帮助菜单显示
+
+**English**：
+- 🎨 **GUI Layout Upgrade**: Main menu upgraded to 54-slot layout with symmetric design for better usability
+- 🌍 **Localization Sync**: Fixed missing keys in language files ensuring consistent bilingual experience
+- 🔧 **I18n Optimization**: Added auto-release and hot-reload for language files, allowing user customization
+- 🛡️ **Security Audit**: Added `/pm audit` command to help admins detect suspicious transactions
+- ⭐ **Featured Shops**: Added featured shops functionality, allowing admins to promote trusted sellers
+- 🐛 **Bug Fixes**: Fixed color code issues and optimized help menu display
 
 #### v1.1
 **中文**：

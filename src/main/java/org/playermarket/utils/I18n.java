@@ -5,7 +5,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.playermarket.PlayerMarket;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,23 +21,56 @@ public class I18n {
     
     public static void initialize(PlayerMarket pluginInstance) {
         plugin = pluginInstance;
+        saveDefaultLanguageFiles();
         loadDefaultBundle();
     }
     
+    private static void saveDefaultLanguageFiles() {
+        String[] langs = {"zh_CN", "en_US"};
+        for (String lang : langs) {
+            String fileName = "messages_" + lang + ".properties";
+            File file = new File(plugin.getDataFolder(), fileName);
+            if (!file.exists()) {
+                plugin.saveResource(fileName, false);
+            }
+        }
+    }
+
     private static void loadDefaultBundle() {
         String defaultLang = plugin.getConfig().getString("language.default", "en_US");
-        Locale locale = parseLocale(defaultLang);
-        try {
-            defaultBundle = ResourceBundle.getBundle("messages", locale);
-        } catch (Exception e) {
-            defaultBundle = ResourceBundle.getBundle("messages", new Locale("en", "US"));
+        defaultBundle = loadBundleFromFile(defaultLang);
+        if (defaultBundle == null) {
+            Locale locale = parseLocale(defaultLang);
+            try {
+                defaultBundle = ResourceBundle.getBundle("messages", locale);
+            } catch (Exception e) {
+                defaultBundle = ResourceBundle.getBundle("messages", new Locale("en", "US"));
+            }
         }
     }
     
+    private static ResourceBundle loadBundleFromFile(String lang) {
+        if (lang == null || lang.equalsIgnoreCase("auto")) {
+            return null;
+        }
+        
+        String fileName = "messages_" + lang + ".properties";
+        File file = new File(plugin.getDataFolder(), fileName);
+        if (file.exists()) {
+            try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
+                return new PropertyResourceBundle(reader);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Failed to load language file: " + fileName);
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+    
     private static Locale parseLocale(String lang) {
-        if (lang.equals("zh_CN")) {
+        if (lang != null && lang.equals("zh_CN")) {
             return new Locale("zh", "CN");
-        } else if (lang.equals("en_US")) {
+        } else if (lang != null && lang.equals("en_US")) {
             return new Locale("en", "US");
         }
         return new Locale("en", "US");
@@ -58,9 +96,15 @@ public class I18n {
     }
     
     public static void setPlayerLanguage(Player player, String lang) {
+        ResourceBundle bundle = loadBundleFromFile(lang);
+        if (bundle != null) {
+            playerBundles.put(player, bundle);
+            return;
+        }
+
         Locale locale = parseLocale(lang);
         try {
-            ResourceBundle bundle = ResourceBundle.getBundle("messages", locale);
+            bundle = ResourceBundle.getBundle("messages", locale);
             playerBundles.put(player, bundle);
         } catch (Exception e) {
             playerBundles.remove(player);
